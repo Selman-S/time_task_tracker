@@ -440,7 +440,7 @@ export default function TimeEntriesPage() {
                   size="sm"
                   onClick={goToPreviousWeek}
                   disabled={weekLoading}
-                  className="text-gray-600 hover:text-gray-900"
+                  className="text-gray-600 hover:text-gray-900 "
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
@@ -497,7 +497,7 @@ export default function TimeEntriesPage() {
                   <div key={tab.date} className="flex flex-col">
                     <Button
                       variant={tab.isSelected ? "default" : "ghost"}
-                      size="sm"
+                      size="lg"
                       onClick={() => setSelectedDay(tab.date)}
                       disabled={weekLoading}
                       className={`${
