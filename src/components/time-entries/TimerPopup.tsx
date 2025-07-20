@@ -349,7 +349,9 @@ export default function TimerPopup({ open, onOpenChange, onTimerStarted, selecte
     setShowProjectForm(false);
   };
 
-  const handleTaskCreated = (task: { id: string; title: string; description?: string; projectId: string }) => {
+  const handleTaskCreated = (task?: { id: string; title: string; description?: string; projectId: string }) => {
+    if (!task) return;
+    
     // Create a Task object that matches the interface
     const newTask: Task = {
       id: task.id,
@@ -501,6 +503,7 @@ export default function TimerPopup({ open, onOpenChange, onTimerStarted, selecte
             <QuickTaskForm
               projectId={selectedProject}
               projectName={projects.find(p => p.id === selectedProject)?.name || ''}
+              brandId={selectedBrand}
               brandName={brands.find(b => b.id === selectedBrand)?.name || ''}
               onTaskCreated={handleTaskCreated}
               onCancel={() => {

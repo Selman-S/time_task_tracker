@@ -10,6 +10,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import ProjectPermissionManager from '@/components/projects/ProjectPermissionManager';
 import QuickTaskForm from '@/components/forms/QuickTaskForm';
+import TaskViewToggle from '@/components/tasks/TaskViewToggle';
+import TaskBoard from '@/components/tasks/TaskBoard';
+import TaskCalendar from '@/components/tasks/TaskCalendar';
 
 interface Task {
   id: string;
@@ -77,6 +80,7 @@ export default function ProjectDetailPage() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [project, setProject] = useState<Project | null>(null);
+  const [viewMode, setViewMode] = useState<'board' | 'calendar'>('board');
 
   // Load user from localStorage
   useEffect(() => {
@@ -164,6 +168,30 @@ export default function ProjectDetailPage() {
         return <Badge variant="secondary" className="bg-purple-100 text-purple-800">Admin</Badge>;
       default:
         return <Badge variant="secondary">Unknown</Badge>;
+    }
+  };
+
+  const handleTaskStatusChange = async (taskId: string, newStatus: 'TODO' | 'IN_PROGRESS' | 'DONE') => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/tasks/${taskId}/status`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ status: newStatus }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update task status');
+      }
+
+      // Refresh project data
+      await fetchProject();
+    } catch (error) {
+      console.error('Error updating task status:', error);
+      throw error;
     }
   };
 
@@ -420,67 +448,32 @@ export default function ProjectDetailPage() {
                   </CardContent>
                 </Card>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {project.tasks.map((task) => (
-                    <Card key={task.id} className="border-0 shadow-lg bg-white/80 backdrop-blur-sm hover:shadow-xl transition-all duration-300">
-                      <CardHeader>
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <CardTitle className="text-lg text-gray-900 line-clamp-2">{task.title}</CardTitle>
-                            <CardDescription className="text-gray-600">
-                              Created by {task.createdByUser?.name || 'Unknown'}
-                            </CardDescription>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            {getStatusBadge(task.status)}
-                          </div>
-                        </div>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-3">
-                          {task.description && (
-                            <p className="text-sm text-gray-600 line-clamp-2">
-                              {task.description}
-                            </p>
-                          )}
-                          <div className="flex items-center justify-between text-sm text-gray-500">
-                            <span>{task._count.timeEntries} time entries</span>
-                            {task.estimatedHours && (
-                              <span>{task.estimatedHours}h estimated</span>
-                            )}
-                          </div>
-                          {task.assignedUser && (
-                            <div className="flex items-center justify-between text-sm text-gray-500">
-                              <span>Assigned to: {task.assignedUser?.name || 'Unknown'}</span>
-                            </div>
-                          )}
-                          {task.dueDate && (
-                            <div className="flex items-center justify-between text-sm text-gray-500">
-                              <span>Due: {formatDate(task.dueDate)}</span>
-                            </div>
-                          )}
-                          <div className="flex items-center justify-end space-x-2 pt-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => router.push(`/tasks/${task.id}`)}
-                              className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                            >
-                              View
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => router.push(`/tasks/${task.id}/edit`)}
-                              className="text-green-600 hover:text-green-700 hover:bg-green-50"
-                            >
-                              Edit
-                            </Button>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                <div className="space-y-4">
+                  {/* View Toggle */}
+                  <div className="flex items-center justify-between">
+                    <TaskViewToggle
+                      viewMode={viewMode}
+                      onViewModeChange={setViewMode}
+                    />
+                  </div>
+                  
+                  {/* Task View */}
+                  {viewMode === 'board' ? (
+                    <TaskBoard
+                      tasks={project.tasks}
+                      onTaskClick={(taskId) => router.push(`/tasks/${taskId}`)}
+                      onTaskEdit={(taskId) => router.push(`/tasks/${taskId}/edit`)}
+                      formatDate={formatDate}
+                      onTaskStatusChange={handleTaskStatusChange}
+                    />
+                  ) : (
+                    <TaskCalendar
+                      tasks={project.tasks}
+                      onTaskClick={(taskId) => router.push(`/tasks/${taskId}`)}
+                      onTaskEdit={(taskId) => router.push(`/tasks/${taskId}/edit`)}
+                      formatDate={formatDate}
+                    />
+                  )}
                 </div>
               )}
             </TabsContent>

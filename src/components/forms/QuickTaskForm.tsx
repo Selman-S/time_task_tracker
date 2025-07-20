@@ -22,7 +22,8 @@ interface QuickTaskFormProps {
   projectName: string;
   brandId: string;
   brandName: string;
-  onTaskCreated: () => void;
+  onTaskCreated: (task?: { id: string; title: string; description?: string; projectId: string }) => void;
+  onCancel?: () => void;
 }
 
 export default function QuickTaskForm({ 
@@ -125,7 +126,7 @@ export default function QuickTaskForm({
         setOpen(false);
         
         // Notify parent component
-        onTaskCreated();
+        onTaskCreated(data.data);
       } else {
         throw new Error(data.error || 'Failed to create task');
       }
