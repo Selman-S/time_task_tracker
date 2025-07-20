@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Play } from 'lucide-react';
+import { Play, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -46,6 +47,7 @@ export default function TimerPopup({ open, onOpenChange, onTimerStarted }: Timer
   const [selectedBrand, setSelectedBrand] = useState<string>('');
   const [selectedProject, setSelectedProject] = useState<string>('');
   const [selectedTask, setSelectedTask] = useState<string>('');
+  const [timeInput, setTimeInput] = useState<string>('00:00');
   const [brands, setBrands] = useState<Brand[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -140,49 +142,96 @@ export default function TimerPopup({ open, onOpenChange, onTimerStarted }: Timer
     }
   };
 
-  const handleStartTimer = async () => {
+  const parseTimeInput = (timeString: string): number => {
+    if (!timeString || timeString === '00:00') return 0;
+    
+    const [hours, minutes] = timeString.split(':').map(Number);
+    return (hours * 60) + minutes;
+  };
+
+  const handleSubmit = async () => {
     if (!selectedTask) {
       toast.error('Please select a task first');
       return;
     }
 
+    const durationMinutes = parseTimeInput(timeInput);
+
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/time-entries/start`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          taskId: selectedTask,
-        }),
-      });
+      if (durationMinutes > 0) {
+        // Manual entry
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/time-entries`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            taskId: selectedTask,
+            durationMinutes: durationMinutes,
+            workDate: new Date().toISOString().split('T')[0],
+            notes: '',
+          }),
+        });
 
-      const data = await response.json();
+        const data = await response.json();
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to start timer');
-      }
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to create time entry');
+        }
 
-      if (data.success) {
-        toast.success('Timer started successfully');
-        onOpenChange(false);
-        setSelectedBrand('');
-        setSelectedProject('');
-        setSelectedTask('');
-        onTimerStarted();
+        if (data.success) {
+          toast.success('Time entry created successfully');
+          onOpenChange(false);
+          resetForm();
+          onTimerStarted();
+        } else {
+          throw new Error(data.error || 'Failed to create time entry');
+        }
       } else {
-        throw new Error(data.error || 'Failed to start timer');
+        // Start timer
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/time-entries/start`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            taskId: selectedTask,
+          }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to start timer');
+        }
+
+        if (data.success) {
+          toast.success('Timer started successfully');
+          onOpenChange(false);
+          resetForm();
+          onTimerStarted();
+        } else {
+          throw new Error(data.error || 'Failed to start timer');
+        }
       }
     } catch (error) {
-      console.error('Error starting timer:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to start timer');
+      console.error('Error:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to process request');
     } finally {
       setLoading(false);
     }
+  };
+
+  const resetForm = () => {
+    setSelectedBrand('');
+    setSelectedProject('');
+    setSelectedTask('');
+    setTimeInput('00:00');
   };
 
   return (
@@ -191,10 +240,10 @@ export default function TimerPopup({ open, onOpenChange, onTimerStarted }: Timer
         <DialogHeader>
           <DialogTitle className="flex items-center space-x-2">
             <Play className="h-5 w-5 text-green-600" />
-            <span>Start Timer</span>
+            <span>Start Timer / Add Time</span>
           </DialogTitle>
           <DialogDescription>
-            Select brand, project, and task to start tracking time
+            Select brand, project, and task to start tracking time or add manual entry
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
@@ -263,22 +312,45 @@ export default function TimerPopup({ open, onOpenChange, onTimerStarted }: Timer
             </Select>
           </div>
 
-          {/* Start Timer Button */}
+          {/* Time Input */}
+          <div className="space-y-2">
+            <Label htmlFor="timeInput" className="text-lg font-bold text-gray-700">
+              Time (HH:MM) *
+            </Label>
+            <Input
+              id="timeInput"
+              type="text"
+              placeholder="00:00"
+              value={timeInput}
+              onChange={(e) => setTimeInput(e.target.value)}
+              className="h-16 text-xl font-semibold border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+            />
+            <p className="text-xs text-gray-500">
+              {timeInput === '00:00' ? 'Leave as 00:00 to start timer from 0' : 'Enter time for manual entry'}
+            </p>
+          </div>
+
+          {/* Submit Button */}
           <div className="pt-4">
             <Button
-              onClick={handleStartTimer}
+              onClick={handleSubmit}
               className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg"
               disabled={!selectedTask || loading}
             >
               {loading ? (
                 <div className="flex items-center space-x-2">
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  <span>Starting...</span>
+                  <span>Processing...</span>
                 </div>
-              ) : (
+              ) : timeInput === '00:00' ? (
                 <>
                   <Play className="mr-2 h-4 w-4" />
                   Start Timer
+                </>
+              ) : (
+                <>
+                  <Clock className="mr-2 h-4 w-4" />
+                  Add Time Entry
                 </>
               )}
             </Button>

@@ -11,7 +11,6 @@ import { toast } from 'sonner';
 
 // Import components
 import TimerPopup from '@/components/time-entries/TimerPopup';
-import ManualEntryPopup from '@/components/time-entries/ManualEntryPopup';
 import EditEntryPopup from '@/components/time-entries/EditEntryPopup';
 
 interface TimeEntry {
@@ -69,7 +68,6 @@ export default function TimeEntriesPage() {
 
   // Popup states
   const [showTimerPopup, setShowTimerPopup] = useState(false);
-  const [showManualPopup, setShowManualPopup] = useState(false);
   const [showEditPopup, setShowEditPopup] = useState(false);
   const [editingTimeEntry, setEditingTimeEntry] = useState<TimeEntry | null>(null);
 
@@ -422,15 +420,7 @@ export default function TimeEntriesPage() {
                 className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg"
               >
                 <Play className="mr-2 h-4 w-4" />
-                Start Timer
-              </Button>
-              <Button 
-                onClick={() => setShowManualPopup(true)}
-                variant="outline" 
-                className="border-gray-300 text-gray-700 hover:bg-gray-50"
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Manual Entry
+                Start Timer / Add Time
               </Button>
             </div>
           </div>
@@ -561,15 +551,7 @@ export default function TimeEntriesPage() {
                       className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg"
                     >
                       <Play className="mr-2 h-4 w-4" />
-                      Start Timer
-                    </Button>
-                    <Button 
-                      onClick={() => setShowManualPopup(true)}
-                      variant="outline"
-                      className="border-gray-300 text-gray-700 hover:bg-gray-50"
-                    >
-                      <Plus className="mr-2 h-4 w-4" />
-                      Manual Entry
+                      Start Timer / Add Time
                     </Button>
                   </div>
                 </div>
@@ -705,12 +687,6 @@ export default function TimeEntriesPage() {
         open={showTimerPopup} 
         onOpenChange={setShowTimerPopup} 
         onTimerStarted={refreshWeekData}
-      />
-      
-      <ManualEntryPopup 
-        open={showManualPopup} 
-        onOpenChange={setShowManualPopup} 
-        onEntryCreated={refreshWeekData}
       />
       
       <EditEntryPopup 
