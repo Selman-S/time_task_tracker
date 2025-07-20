@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { toast } from 'sonner';
+import { showTimerStartedToast, showTimeEntryCreatedToast, showTimeEntryErrorToast } from '@/lib/toast';
 
 interface Brand {
   id: string;
@@ -204,7 +204,7 @@ export default function TimerPopup({ open, onOpenChange, onTimerStarted, selecte
 
   const handleSubmit = async () => {
     if (!selectedTask) {
-      toast.error('Please select a task first');
+      showTimeEntryErrorToast('Please select a task first');
       return;
     }
 
@@ -237,7 +237,7 @@ export default function TimerPopup({ open, onOpenChange, onTimerStarted, selecte
         }
 
         if (data.success) {
-          toast.success('Time entry created successfully');
+          showTimeEntryCreatedToast();
           onOpenChange(false);
           resetForm();
           onTimerStarted();
@@ -264,7 +264,7 @@ export default function TimerPopup({ open, onOpenChange, onTimerStarted, selecte
         }
 
         if (data.success) {
-          toast.success('Timer started successfully');
+          showTimerStartedToast();
           onOpenChange(false);
           resetForm();
           onTimerStarted();
@@ -274,7 +274,7 @@ export default function TimerPopup({ open, onOpenChange, onTimerStarted, selecte
       }
     } catch (error) {
       console.error('Error:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to process request');
+      showTimeEntryErrorToast(error instanceof Error ? error.message : 'Failed to process request');
     } finally {
       setLoading(false);
     }

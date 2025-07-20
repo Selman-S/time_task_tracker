@@ -19,6 +19,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { toast } from 'sonner';
+import { Toaster } from "@/components/ui/toaster"
 
 interface User {
   id: string;
@@ -217,6 +218,8 @@ export default function DashboardLayout({
           {children}
         </main>
       </div>
+      {/* Popup Components */}
+      <Toaster />
     </div>
   );
 } 

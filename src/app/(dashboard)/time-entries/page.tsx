@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { toast } from 'sonner';
+import { showTimerStartedToast, showTimerStoppedToast, showTimeEntryCreatedToast, showTimeEntryErrorToast, showDeleteSuccessToast } from '@/lib/toast';
 
 // Import components
 import TimerPopup from '@/components/time-entries/TimerPopup';
@@ -118,7 +118,7 @@ export default function TimeEntriesPage() {
       }
     } catch (error) {
       console.error('Error fetching time entries:', error);
-      toast.error('Failed to fetch time entries');
+      showTimeEntryErrorToast('Failed to fetch time entries');
     } finally {
       setLoading(false);
     }
@@ -145,11 +145,11 @@ export default function TimeEntriesPage() {
         throw new Error(errorData.error || 'Failed to stop timer');
       }
 
-      toast.success('Timer stopped successfully');
+      showTimerStoppedToast();
       refreshWeekData();
     } catch (error) {
       console.error('Error stopping timer:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to stop timer');
+      showTimeEntryErrorToast(error instanceof Error ? error.message : 'Failed to stop timer');
     }
   };
 
@@ -170,11 +170,11 @@ export default function TimeEntriesPage() {
         throw new Error(errorData.error || 'Failed to start time entry');
       }
 
-      toast.success('Timer started successfully');
+      showTimerStartedToast();
       refreshWeekData();
     } catch (error) {
       console.error('Error starting time entry:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to start time entry');
+      showTimeEntryErrorToast(error instanceof Error ? error.message : 'Failed to start time entry');
     }
   };
 
@@ -195,11 +195,11 @@ export default function TimeEntriesPage() {
         throw new Error(errorData.error || 'Failed to delete time entry');
       }
 
-      toast.success('Time entry deleted successfully');
+      showDeleteSuccessToast('Time Entry');
       refreshWeekData();
     } catch (error) {
       console.error('Error deleting time entry:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to delete time entry');
+      showTimeEntryErrorToast(error instanceof Error ? error.message : 'Failed to delete time entry');
     }
   };
 
@@ -286,7 +286,7 @@ export default function TimeEntriesPage() {
       }
     } catch (error) {
       console.error('Error fetching week data:', error);
-      toast.error('Failed to fetch week data');
+      showTimeEntryErrorToast('Failed to fetch week data');
     } finally {
       setWeekLoading(false);
     }

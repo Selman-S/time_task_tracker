@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { toast } from 'sonner';
+import { showCreateSuccessToast, showDeleteSuccessToast, showCreateErrorToast, showDeleteErrorToast, showNetworkErrorToast } from '@/lib/toast';
 
 interface Brand {
   id: string;
@@ -99,7 +99,7 @@ export default function BrandsPage() {
       }
     } catch (error) {
       console.error('Error fetching brands:', error);
-      toast.error('Failed to fetch brands');
+      showNetworkErrorToast();
     } finally {
       setLoading(false);
     }
@@ -126,13 +126,13 @@ export default function BrandsPage() {
         throw new Error(errorData.error || 'Failed to delete brand');
       }
 
-      toast.success('Brand deleted successfully');
+      showDeleteSuccessToast('Brand');
       fetchBrands();
       setDeleteDialogOpen(false);
       setBrandToDelete(null);
     } catch (error) {
       console.error('Error deleting brand:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to delete brand');
+      showDeleteErrorToast('Brand', error instanceof Error ? error.message : undefined);
     }
   };
 
