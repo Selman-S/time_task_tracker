@@ -1,13 +1,17 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Play, Clock } from 'lucide-react';
+import { Play, Clock, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { showTimerStartedToast, showTimeEntryCreatedToast, showTimeEntryErrorToast } from '@/lib/toast';
+import { canCreateBrand, canCreateProject, canCreateTask, getUserRole } from '@/lib/permissions';
+import QuickBrandForm from '@/components/forms/QuickBrandForm';
+import QuickProjectForm from '@/components/forms/QuickProjectForm';
+import QuickTaskForm from '@/components/forms/QuickTaskForm';
 
 interface Brand {
   id: string;
@@ -54,6 +58,14 @@ export default function TimerPopup({ open, onOpenChange, onTimerStarted, selecte
   const [projects, setProjects] = useState<Project[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(false);
+  
+  // Quick creation states
+  const [showBrandForm, setShowBrandForm] = useState(false);
+  const [showProjectForm, setShowProjectForm] = useState(false);
+  const [showTaskForm, setShowTaskForm] = useState(false);
+  
+  // Get user role for permission checking
+  const userRole = getUserRole();
 
   // Show work date input when time is not 00:00
   const showWorkDate = timeInput !== '00:00' && timeInput !== '';
@@ -69,6 +81,39 @@ export default function TimerPopup({ open, onOpenChange, onTimerStarted, selecte
   useEffect(() => {
     fetchBrands();
   }, []);
+
+  // Handle brand selection
+  const handleBrandChange = (value: string) => {
+    if (value === 'new-brand') {
+      setShowBrandForm(true);
+      setSelectedBrand('');
+    } else {
+      setSelectedBrand(value);
+      setShowBrandForm(false);
+    }
+  };
+
+  // Handle project selection
+  const handleProjectChange = (value: string) => {
+    if (value === 'new-project') {
+      setShowProjectForm(true);
+      setSelectedProject('');
+    } else {
+      setSelectedProject(value);
+      setShowProjectForm(false);
+    }
+  };
+
+  // Handle task selection
+  const handleTaskChange = (value: string) => {
+    if (value === 'new-task') {
+      setShowTaskForm(true);
+      setSelectedTask('');
+    } else {
+      setSelectedTask(value);
+      setShowTaskForm(false);
+    }
+  };
 
   // Load projects when brand changes
   useEffect(() => {
@@ -286,6 +331,43 @@ export default function TimerPopup({ open, onOpenChange, onTimerStarted, selecte
     setSelectedTask('');
     setTimeInput('00:00');
     setWorkDate(new Date().toISOString().split('T')[0]);
+    setShowBrandForm(false);
+    setShowProjectForm(false);
+    setShowTaskForm(false);
+  };
+
+  // Quick creation handlers
+  const handleBrandCreated = (brand: { id: string; name: string; description?: string }) => {
+    setBrands(prev => [brand, ...prev]);
+    setSelectedBrand(brand.id);
+    setShowBrandForm(false);
+  };
+
+  const handleProjectCreated = (project: { id: string; name: string; description?: string; brandId: string }) => {
+    setProjects(prev => [project, ...prev]);
+    setSelectedProject(project.id);
+    setShowProjectForm(false);
+  };
+
+  const handleTaskCreated = (task: { id: string; title: string; description?: string; projectId: string }) => {
+    // Create a Task object that matches the interface
+    const newTask: Task = {
+      id: task.id,
+      title: task.title,
+      description: task.description,
+      projectId: task.projectId,
+      project: {
+        id: task.projectId,
+        name: projects.find(p => p.id === task.projectId)?.name || '',
+        brand: {
+          id: selectedBrand,
+          name: brands.find(b => b.id === selectedBrand)?.name || '',
+        },
+      },
+    };
+    setTasks(prev => [newTask, ...prev]);
+    setSelectedTask(task.id);
+    setShowTaskForm(false);
   };
 
   return (
@@ -306,11 +388,19 @@ export default function TimerPopup({ open, onOpenChange, onTimerStarted, selecte
             <Label htmlFor="brand" className="text-sm font-medium text-gray-700">
               Brand *
             </Label>
-            <Select value={selectedBrand} onValueChange={setSelectedBrand}>
+            <Select value={selectedBrand} onValueChange={handleBrandChange}>
               <SelectTrigger className="h-12 border-gray-300 focus:border-blue-500 focus:ring-blue-500">
                 <SelectValue placeholder="Select a brand" />
               </SelectTrigger>
               <SelectContent>
+                {canCreateBrand(userRole) && (
+                  <SelectItem value="new-brand" className="font-semibold text-blue-600">
+                    <div className="flex items-center space-x-2">
+                      <Plus className="h-4 w-4" />
+                      <span>New Brand</span>
+                    </div>
+                  </SelectItem>
+                )}
                 {brands.map((brand) => (
                   <SelectItem key={brand.id} value={brand.id}>
                     {brand.name}
@@ -320,6 +410,17 @@ export default function TimerPopup({ open, onOpenChange, onTimerStarted, selecte
             </Select>
           </div>
 
+          {/* Quick Brand Form */}
+          {showBrandForm && (
+            <QuickBrandForm
+              onBrandCreated={handleBrandCreated}
+              onCancel={() => {
+                setShowBrandForm(false);
+                setSelectedBrand('');
+              }}
+            />
+          )}
+
           {/* Project Selection */}
           <div className="space-y-2">
             <Label htmlFor="project" className="text-sm font-medium text-gray-700">
@@ -327,13 +428,21 @@ export default function TimerPopup({ open, onOpenChange, onTimerStarted, selecte
             </Label>
             <Select 
               value={selectedProject} 
-              onValueChange={setSelectedProject}
+              onValueChange={handleProjectChange}
               disabled={!selectedBrand}
             >
               <SelectTrigger className="h-12 border-gray-300 focus:border-blue-500 focus:ring-blue-500">
                 <SelectValue placeholder={selectedBrand ? "Select a project" : "Select brand first"} />
               </SelectTrigger>
               <SelectContent>
+                {canCreateProject(userRole) && selectedBrand && (
+                  <SelectItem value="new-project" className="font-semibold text-blue-600">
+                    <div className="flex items-center space-x-2">
+                      <Plus className="h-4 w-4" />
+                      <span>New Project</span>
+                    </div>
+                  </SelectItem>
+                )}
                 {projects.map((project) => (
                   <SelectItem key={project.id} value={project.id}>
                     {project.name}
@@ -343,6 +452,19 @@ export default function TimerPopup({ open, onOpenChange, onTimerStarted, selecte
             </Select>
           </div>
 
+          {/* Quick Project Form */}
+          {showProjectForm && selectedBrand && (
+            <QuickProjectForm
+              brandId={selectedBrand}
+              brandName={brands.find(b => b.id === selectedBrand)?.name || ''}
+              onProjectCreated={handleProjectCreated}
+              onCancel={() => {
+                setShowProjectForm(false);
+                setSelectedProject('');
+              }}
+            />
+          )}
+
           {/* Task Selection */}
           <div className="space-y-2">
             <Label htmlFor="task" className="text-sm font-medium text-gray-700">
@@ -350,13 +472,21 @@ export default function TimerPopup({ open, onOpenChange, onTimerStarted, selecte
             </Label>
             <Select 
               value={selectedTask} 
-              onValueChange={setSelectedTask}
+              onValueChange={handleTaskChange}
               disabled={!selectedProject}
             >
               <SelectTrigger className="h-12 border-gray-300 focus:border-blue-500 focus:ring-blue-500">
                 <SelectValue placeholder={selectedProject ? "Select a task" : "Select project first"} />
               </SelectTrigger>
               <SelectContent>
+                {canCreateTask(userRole) && selectedProject && (
+                  <SelectItem value="new-task" className="font-semibold text-blue-600">
+                    <div className="flex items-center space-x-2">
+                      <Plus className="h-4 w-4" />
+                      <span>New Task</span>
+                    </div>
+                  </SelectItem>
+                )}
                 {tasks.map((task) => (
                   <SelectItem key={task.id} value={task.id}>
                     {task.title}
@@ -365,6 +495,20 @@ export default function TimerPopup({ open, onOpenChange, onTimerStarted, selecte
               </SelectContent>
             </Select>
           </div>
+
+          {/* Quick Task Form */}
+          {showTaskForm && selectedProject && (
+            <QuickTaskForm
+              projectId={selectedProject}
+              projectName={projects.find(p => p.id === selectedProject)?.name || ''}
+              brandName={brands.find(b => b.id === selectedBrand)?.name || ''}
+              onTaskCreated={handleTaskCreated}
+              onCancel={() => {
+                setShowTaskForm(false);
+                setSelectedTask('');
+              }}
+            />
+          )}
 
           {/* Time Input */}
           <div className="space-y-2">
@@ -409,13 +553,18 @@ export default function TimerPopup({ open, onOpenChange, onTimerStarted, selecte
             <Button
               onClick={handleSubmit}
               className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg"
-              disabled={!selectedTask || loading}
+              disabled={!selectedTask || loading || showBrandForm || showProjectForm || showTaskForm}
             >
               {loading ? (
                 <div className="flex items-center space-x-2">
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                   <span>Processing...</span>
                 </div>
+              ) : showBrandForm || showProjectForm || showTaskForm ? (
+                <>
+                  <Clock className="mr-2 h-4 w-4" />
+                  Complete Form First
+                </>
               ) : timeInput === '00:00' ? (
                 <>
                   <Play className="mr-2 h-4 w-4" />

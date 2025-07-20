@@ -7,6 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Plus } from 'lucide-react';
+import QuickUserForm from '@/components/forms/QuickUserForm';
 
 interface User {
   id: string;
@@ -25,6 +27,7 @@ export default function AdminUsersPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [showUserForm, setShowUserForm] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -139,6 +142,23 @@ export default function AdminUsersPage() {
     }
   };
 
+  const handleUserCreated = (user: { id: string; name: string; email: string; role: string; createdAt: string }) => {
+    // Ensure all required fields are present
+    if (!user.id || !user.name || !user.email || !user.role) {
+      console.error('Invalid user data received:', user);
+      return;
+    }
+
+    const newUser: UserWithRole = {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role as 'SUPER_ADMIN' | 'ADMIN' | 'MANAGER' | 'WORKER' | 'CLIENT',
+      createdAt: user.createdAt,
+    };
+    setUsers(prev => [newUser, ...prev]);
+  };
+
   const getRoleBadge = (role: string) => {
     const roleConfig = {
       SUPER_ADMIN: { color: 'bg-red-100 text-red-800', icon: '👑', label: 'Super Admin' },
@@ -173,12 +193,23 @@ export default function AdminUsersPage() {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            User Management 👥
-          </h1>
-          <p className="text-gray-600">
-            Manage user roles and permissions for your organization.
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                User Management 👥
+              </h1>
+              <p className="text-gray-600">
+                Manage user roles and permissions for your organization.
+              </p>
+            </div>
+            <Button
+              onClick={() => setShowUserForm(true)}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              New User
+            </Button>
+          </div>
         </div>
 
         {error && (
@@ -199,7 +230,7 @@ export default function AdminUsersPage() {
                   <div className="flex items-center space-x-4">
                     <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
                       <span className="text-white font-bold text-lg">
-                        {user.name.charAt(0).toUpperCase()}
+                        {user.name?.charAt(0)?.toUpperCase() || 'U'}
                       </span>
                     </div>
                     <div>
@@ -264,6 +295,13 @@ export default function AdminUsersPage() {
             </CardContent>
           </Card>
         )}
+
+        {/* Quick User Form */}
+        <QuickUserForm
+          open={showUserForm}
+          onOpenChange={setShowUserForm}
+          onUserCreated={handleUserCreated}
+        />
       </main>
     </div>
   );
