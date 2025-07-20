@@ -70,6 +70,7 @@ export default function TimeEntriesPage() {
   const [showTimerPopup, setShowTimerPopup] = useState(false);
   const [showEditPopup, setShowEditPopup] = useState(false);
   const [editingTimeEntry, setEditingTimeEntry] = useState<TimeEntry | null>(null);
+  const [selectedWorkDate, setSelectedWorkDate] = useState<string>('');
 
   // Load user from localStorage
   useEffect(() => {
@@ -416,7 +417,10 @@ export default function TimeEntriesPage() {
             </div>
             <div className="flex items-center space-x-3">
               <Button 
-                onClick={() => setShowTimerPopup(true)}
+                onClick={() => {
+                  setSelectedWorkDate(selectedDay);
+                  setShowTimerPopup(true);
+                }}
                 className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg"
               >
                 <Play className="mr-2 h-4 w-4" />
@@ -547,7 +551,10 @@ export default function TimeEntriesPage() {
                   </p>
                   <div className="flex items-center justify-center space-x-3">
                     <Button 
-                      onClick={() => setShowTimerPopup(true)}
+                      onClick={() => {
+                        setSelectedWorkDate(selectedDay);
+                        setShowTimerPopup(true);
+                      }}
                       className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg"
                     >
                       <Play className="mr-2 h-4 w-4" />
@@ -687,6 +694,7 @@ export default function TimeEntriesPage() {
         open={showTimerPopup} 
         onOpenChange={setShowTimerPopup} 
         onTimerStarted={refreshWeekData}
+        selectedWorkDate={selectedWorkDate}
       />
       
       <EditEntryPopup 

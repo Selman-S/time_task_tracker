@@ -41,17 +41,29 @@ interface TimerPopupProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onTimerStarted: () => void;
+  selectedWorkDate?: string; // Add prop for work date from clicked time entry
 }
 
-export default function TimerPopup({ open, onOpenChange, onTimerStarted }: TimerPopupProps) {
+export default function TimerPopup({ open, onOpenChange, onTimerStarted, selectedWorkDate }: TimerPopupProps) {
   const [selectedBrand, setSelectedBrand] = useState<string>('');
   const [selectedProject, setSelectedProject] = useState<string>('');
   const [selectedTask, setSelectedTask] = useState<string>('');
   const [timeInput, setTimeInput] = useState<string>('00:00');
+  const [workDate, setWorkDate] = useState<string>(selectedWorkDate || new Date().toISOString().split('T')[0]);
   const [brands, setBrands] = useState<Brand[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(false);
+
+  // Show work date input when time is not 00:00
+  const showWorkDate = timeInput !== '00:00' && timeInput !== '';
+
+  // Update work date when selectedWorkDate prop changes
+  useEffect(() => {
+    if (selectedWorkDate) {
+      setWorkDate(selectedWorkDate);
+    }
+  }, [selectedWorkDate]);
 
   // Load brands on mount
   useEffect(() => {
@@ -145,8 +157,49 @@ export default function TimerPopup({ open, onOpenChange, onTimerStarted }: Timer
   const parseTimeInput = (timeString: string): number => {
     if (!timeString || timeString === '00:00') return 0;
     
-    const [hours, minutes] = timeString.split(':').map(Number);
+    // Handle various formats: "1:30", "01:30", "130", "1:3", etc.
+    let hours = 0;
+    let minutes = 0;
+    
+    if (timeString.includes(':')) {
+      const parts = timeString.split(':');
+      hours = parseInt(parts[0]) || 0;
+      minutes = parseInt(parts[1]) || 0;
+    } else {
+      // Handle format like "130" (1 hour 30 minutes)
+      const totalMinutes = parseInt(timeString);
+      if (!isNaN(totalMinutes)) {
+        hours = Math.floor(totalMinutes / 100);
+        minutes = totalMinutes % 100;
+      }
+    }
+    
     return (hours * 60) + minutes;
+  };
+
+  const handleTimeInputChange = (value: string) => {
+    // Only allow digits and colon
+    const cleanedValue = value.replace(/[^0-9:]/g, '');
+    
+    // Ensure only one colon
+    const colonCount = (cleanedValue.match(/:/g) || []).length;
+    if (colonCount > 1) {
+      return;
+    }
+    
+    // Limit length to 5 characters (HH:MM)
+    if (cleanedValue.length > 5) {
+      return;
+    }
+    
+    setTimeInput(cleanedValue);
+    
+    // If time is entered (not 00:00), set work date
+    if (cleanedValue !== '00:00' && cleanedValue !== '') {
+      // Use selectedWorkDate if available, otherwise use today's date
+      const defaultDate = selectedWorkDate || new Date().toISOString().split('T')[0];
+      setWorkDate(defaultDate);
+    }
   };
 
   const handleSubmit = async () => {
@@ -172,7 +225,7 @@ export default function TimerPopup({ open, onOpenChange, onTimerStarted }: Timer
           body: JSON.stringify({
             taskId: selectedTask,
             durationMinutes: durationMinutes,
-            workDate: new Date().toISOString().split('T')[0],
+            workDate: workDate,
             notes: '',
           }),
         });
@@ -232,6 +285,7 @@ export default function TimerPopup({ open, onOpenChange, onTimerStarted }: Timer
     setSelectedProject('');
     setSelectedTask('');
     setTimeInput('00:00');
+    setWorkDate(new Date().toISOString().split('T')[0]);
   };
 
   return (
@@ -320,15 +374,35 @@ export default function TimerPopup({ open, onOpenChange, onTimerStarted }: Timer
             <Input
               id="timeInput"
               type="text"
+              inputMode="numeric"
               placeholder="00:00"
               value={timeInput}
-              onChange={(e) => setTimeInput(e.target.value)}
+              onChange={(e) => handleTimeInputChange(e.target.value)}
               className="h-16 text-xl font-semibold border-gray-300 focus:border-blue-500 focus:ring-blue-500"
             />
             <p className="text-xs text-gray-500">
               {timeInput === '00:00' ? 'Leave as 00:00 to start timer from 0' : 'Enter time for manual entry'}
             </p>
           </div>
+
+          {/* Work Date Input - Only show when time is entered */}
+          {showWorkDate && (
+            <div className="space-y-2">
+              <Label htmlFor="workDate" className="text-lg font-bold text-gray-700">
+                Work Date *
+              </Label>
+              <Input
+                id="workDate"
+                type="date"
+                value={workDate}
+                onChange={(e) => setWorkDate(e.target.value)}
+                className="h-16 text-xl font-semibold border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+              />
+              <p className="text-xs text-gray-500">
+                Select the date for this time entry
+              </p>
+            </div>
+          )}
 
           {/* Submit Button */}
           <div className="pt-4">
