@@ -8,6 +8,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
+import ProjectPermissionManager from '@/components/projects/ProjectPermissionManager';
+import QuickTaskForm from '@/components/forms/QuickTaskForm';
 
 interface Task {
   id: string;
@@ -21,7 +23,7 @@ interface Task {
     name: string;
     email: string;
   };
-  createdByUser: {
+  createdByUser?: {
     id: string;
     name: string;
     email: string;
@@ -89,40 +91,40 @@ export default function ProjectDetailPage() {
     }
   }, []);
 
+  const fetchProject = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem('token');
+      
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/projects/${projectId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch project');
+      }
+
+      const data = await response.json();
+      
+      if (data.success) {
+        setProject(data.data);
+      } else {
+        throw new Error(data.error || 'Failed to fetch project');
+      }
+    } catch (error) {
+      console.error('Error fetching project:', error);
+      toast.error('Failed to fetch project');
+      router.push('/projects');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Load project data
   useEffect(() => {
-    const fetchProject = async () => {
-      try {
-        setLoading(true);
-        const token = localStorage.getItem('token');
-        
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/projects/${projectId}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to fetch project');
-        }
-
-        const data = await response.json();
-        
-        if (data.success) {
-          setProject(data.data);
-        } else {
-          throw new Error(data.error || 'Failed to fetch project');
-        }
-      } catch (error) {
-        console.error('Error fetching project:', error);
-        toast.error('Failed to fetch project');
-        router.push('/projects');
-      } finally {
-        setLoading(false);
-      }
-    };
-
     if (projectId) {
       fetchProject();
     }
@@ -272,13 +274,13 @@ export default function ProjectDetailPage() {
                 <Edit className="mr-2 h-4 w-4" />
                 Edit Project
               </Button>
-              <Button 
-                onClick={() => router.push(`/tasks/new?projectId=${projectId}`)}
-                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg"
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Add Task
-              </Button>
+              <QuickTaskForm
+                projectId={projectId}
+                projectName={project.name}
+                brandId={project.brand.id}
+                brandName={project.brand.name}
+                onTaskCreated={fetchProject}
+              />
             </div>
           </div>
 
@@ -407,13 +409,13 @@ export default function ProjectDetailPage() {
                       <p className="text-muted-foreground mb-4">
                         Get started by creating your first task for this project.
                       </p>
-                      <Button 
-                        onClick={() => router.push(`/tasks/new?projectId=${projectId}`)}
-                        className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg"
-                      >
-                        <Plus className="mr-2 h-4 w-4" />
-                        Create Task
-                      </Button>
+                      <QuickTaskForm
+                        projectId={projectId}
+                        projectName={project.name}
+                        brandId={project.brand.id}
+                        brandName={project.brand.name}
+                        onTaskCreated={fetchProject}
+                      />
                     </div>
                   </CardContent>
                 </Card>
@@ -426,7 +428,7 @@ export default function ProjectDetailPage() {
                           <div className="flex-1">
                             <CardTitle className="text-lg text-gray-900 line-clamp-2">{task.title}</CardTitle>
                             <CardDescription className="text-gray-600">
-                              Created by {task.createdByUser.name}
+                              Created by {task.createdByUser?.name || 'Unknown'}
                             </CardDescription>
                           </div>
                           <div className="flex items-center space-x-2">
@@ -449,7 +451,7 @@ export default function ProjectDetailPage() {
                           </div>
                           {task.assignedUser && (
                             <div className="flex items-center justify-between text-sm text-gray-500">
-                              <span>Assigned to: {task.assignedUser.name}</span>
+                              <span>Assigned to: {task.assignedUser?.name || 'Unknown'}</span>
                             </div>
                           )}
                           {task.dueDate && (
@@ -484,49 +486,13 @@ export default function ProjectDetailPage() {
             </TabsContent>
 
             <TabsContent value="permissions" className="space-y-4">
-              {project.permissions.length === 0 ? (
-                <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
-                  <CardContent className="pt-6">
-                    <div className="text-center">
-                      <Users className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                      <h3 className="text-lg font-semibold mb-2">No permissions set</h3>
-                      <p className="text-muted-foreground">
-                        No specific user permissions have been set for this project.
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {project.permissions.map((permission) => (
-                    <Card key={permission.id} className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
-                      <CardHeader>
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <CardTitle className="text-lg text-gray-900">{permission.user.name}</CardTitle>
-                            <CardDescription className="text-gray-600">
-                              {permission.user.email}
-                            </CardDescription>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            {getPermissionBadge(permission.permissionLevel)}
-                          </div>
-                        </div>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-3">
-                          <div className="flex items-center justify-between text-sm text-gray-500">
-                            <span>Role: {permission.user.role}</span>
-                          </div>
-                          <div className="flex items-center justify-between text-sm text-gray-500">
-                            <span>Added: {formatDate(permission.createdAt)}</span>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              )}
+              <ProjectPermissionManager
+                projectId={projectId}
+                projectName={project.name}
+                brandName={project.brand.name}
+                permissions={project.permissions}
+                onPermissionsUpdated={fetchProject}
+              />
             </TabsContent>
           </Tabs>
         </div>
