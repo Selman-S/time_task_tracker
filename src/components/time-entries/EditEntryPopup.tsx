@@ -234,7 +234,7 @@ export default function EditEntryPopup({ open, onOpenChange, timeEntry, onEntryU
 
           {/* Duration */}
           <div className="space-y-2">
-            <Label htmlFor="editDurationMinutes" className="text-sm font-medium text-gray-700">
+            <Label htmlFor="editDurationMinutes" className="text-lg font-bold text-gray-700">
               Duration (minutes) *
             </Label>
             <Input
@@ -245,7 +245,7 @@ export default function EditEntryPopup({ open, onOpenChange, timeEntry, onEntryU
               placeholder="Enter duration in minutes"
               value={formData.durationMinutes || ''}
               onChange={(e) => handleInputChange('durationMinutes', Number(e.target.value))}
-              className={`h-12 border-gray-300 focus:border-blue-500 focus:ring-blue-500 ${
+              className={`h-16 text-xl font-semibold border-gray-300 focus:border-blue-500 focus:ring-blue-500 ${
                 errors.durationMinutes ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
               }`}
             />

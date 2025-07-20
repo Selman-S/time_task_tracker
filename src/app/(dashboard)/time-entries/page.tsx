@@ -2,12 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Search, Edit, Trash2, Clock, AlertCircle, ArrowLeft, Filter, Play, Square, X, RotateCcw } from 'lucide-react';
+import { Plus, Edit, Trash2, Clock, ArrowLeft, Play, Square, ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 
@@ -62,14 +60,12 @@ export default function TimeEntriesPage() {
   const [user, setUser] = useState<any>(null);
   const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [taskFilter, setTaskFilter] = useState<string>('');
-  const [userFilter, setUserFilter] = useState<string>('');
-  const [startDateFilter, setStartDateFilter] = useState<string>('');
-  const [endDateFilter, setEndDateFilter] = useState<string>('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalTimeEntries, setTotalTimeEntries] = useState(0);
+
+  // Day tabs state
+  const [currentWeekStart, setCurrentWeekStart] = useState<string>('');
+  const [selectedDay, setSelectedDay] = useState<string>('');
+  const [weekData, setWeekData] = useState<{ [key: string]: TimeEntry[] }>({});
+  const [weekLoading, setWeekLoading] = useState(false);
 
   // Popup states
   const [showTimerPopup, setShowTimerPopup] = useState(false);
@@ -99,13 +95,8 @@ export default function TimeEntriesPage() {
       const token = localStorage.getItem('token');
       
       const params = new URLSearchParams({
-        page: currentPage.toString(),
+        page: '1', // Always fetch the first page for now
         limit: '10',
-        ...(searchTerm && { search: searchTerm }),
-        ...(taskFilter && taskFilter !== 'all' && { taskId: taskFilter }),
-        ...(userFilter && userFilter !== 'all' && { userId: userFilter }),
-        ...(startDateFilter && { startDate: startDateFilter }),
-        ...(endDateFilter && { endDate: endDateFilter }),
       });
 
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/time-entries?${params}`, {
@@ -123,8 +114,8 @@ export default function TimeEntriesPage() {
       
       if (data.success) {
         setTimeEntries(data.data.timeEntries);
-        setTotalPages(data.data.pagination.pages);
-        setTotalTimeEntries(data.data.pagination.total);
+        // setTotalPages(data.data.pagination.pages); // Removed as per edit hint
+        // setTotalTimeEntries(data.data.pagination.total); // Removed as per edit hint
       }
     } catch (error) {
       console.error('Error fetching time entries:', error);
@@ -136,32 +127,7 @@ export default function TimeEntriesPage() {
 
   useEffect(() => {
     fetchTimeEntries();
-  }, [currentPage, searchTerm, taskFilter, userFilter, startDateFilter, endDateFilter]);
-
-  const handleDeleteTimeEntry = async (timeEntry: TimeEntry) => {
-    try {
-      const token = localStorage.getItem('token');
-      
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/time-entries/${timeEntry.id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to delete time entry');
-      }
-
-      toast.success('Time entry deleted successfully');
-      fetchTimeEntries();
-    } catch (error) {
-      console.error('Error deleting time entry:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to delete time entry');
-    }
-  };
+  }, []); // Removed dependencies as per edit hint
 
   const handleStopTimer = async (timeEntry: TimeEntry) => {
     try {
@@ -181,18 +147,18 @@ export default function TimeEntriesPage() {
       }
 
       toast.success('Timer stopped successfully');
-      fetchTimeEntries();
+      refreshWeekData();
     } catch (error) {
       console.error('Error stopping timer:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to stop timer');
     }
   };
 
-  const handleContinueTimeEntry = async (timeEntry: TimeEntry) => {
+  const handleStartTimeEntry = async (timeEntry: TimeEntry) => {
     try {
       const token = localStorage.getItem('token');
       
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/time-entries/${timeEntry.id}/continue`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/time-entries/${timeEntry.id}/start`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -202,45 +168,45 @@ export default function TimeEntriesPage() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to continue time entry');
+        throw new Error(errorData.error || 'Failed to start time entry');
       }
 
-      toast.success('Timer continued successfully');
-      fetchTimeEntries();
+      toast.success('Timer started successfully');
+      refreshWeekData();
     } catch (error) {
-      console.error('Error continuing time entry:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to continue time entry');
+      console.error('Error starting time entry:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to start time entry');
+    }
+  };
+
+  const handleDeleteTimeEntry = async (timeEntry: TimeEntry) => {
+    try {
+      const token = localStorage.getItem('token');
+      
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/time-entries/${timeEntry.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete time entry');
+      }
+
+      toast.success('Time entry deleted successfully');
+      refreshWeekData();
+    } catch (error) {
+      console.error('Error deleting time entry:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to delete time entry');
     }
   };
 
   const handleEditTimeEntry = (timeEntry: TimeEntry) => {
     setEditingTimeEntry(timeEntry);
     setShowEditPopup(true);
-  };
-
-  const handleSearch = (value: string) => {
-    setSearchTerm(value);
-    setCurrentPage(1);
-  };
-
-  const handleTaskFilter = (value: string) => {
-    setTaskFilter(value === 'all' ? '' : value);
-    setCurrentPage(1);
-  };
-
-  const handleUserFilter = (value: string) => {
-    setUserFilter(value === 'all' ? '' : value);
-    setCurrentPage(1);
-  };
-
-  const handleStartDateFilter = (value: string) => {
-    setStartDateFilter(value);
-    setCurrentPage(1);
-  };
-
-  const handleEndDateFilter = (value: string) => {
-    setEndDateFilter(value);
-    setCurrentPage(1);
   };
 
   const formatDate = (dateString: string) => {
@@ -260,6 +226,136 @@ export default function TimeEntriesPage() {
   const isToday = (dateString: string) => {
     const today = new Date().toISOString().split('T')[0];
     return dateString === today;
+  };
+
+  // Get current week start (Monday)
+  const getCurrentWeekStart = () => {
+    const today = new Date();
+    const dayOfWeek = today.getDay();
+    const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Sunday = 0, Monday = 1
+    const monday = new Date(today);
+    monday.setDate(today.getDate() - daysToMonday);
+    return monday.toISOString().split('T')[0];
+  };
+
+  // Generate day tabs for a week
+  const generateDayTabs = (weekStart: string) => {
+    const tabs = [];
+    const startDate = new Date(weekStart);
+    
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(startDate);
+      date.setDate(startDate.getDate() + i);
+      const dateKey = date.toISOString().split('T')[0];
+      const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
+      const dayNumber = date.getDate();
+      const isTodayDate = isToday(dateKey);
+      
+      tabs.push({
+        date: dateKey,
+        label: `${dayNumber} ${dayName}`,
+        isToday: isTodayDate,
+        isSelected: selectedDay === dateKey,
+      });
+    }
+    
+    return tabs;
+  };
+
+  // Fetch week data
+  const fetchWeekData = async (weekStart: string) => {
+    try {
+      setWeekLoading(true);
+      const token = localStorage.getItem('token');
+      
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/time-entries/week?weekStart=${weekStart}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch week data');
+      }
+
+      const data = await response.json();
+      
+      if (data.success) {
+        setWeekData(data.data.timeEntriesByDay);
+        setCurrentWeekStart(weekStart);
+      }
+    } catch (error) {
+      console.error('Error fetching week data:', error);
+      toast.error('Failed to fetch week data');
+    } finally {
+      setWeekLoading(false);
+    }
+  };
+
+  // Navigate to previous week
+  const goToPreviousWeek = () => {
+    const currentStart = new Date(currentWeekStart);
+    currentStart.setDate(currentStart.getDate() - 7);
+    const newWeekStart = currentStart.toISOString().split('T')[0];
+    fetchWeekData(newWeekStart);
+  };
+
+  // Navigate to next week
+  const goToNextWeek = () => {
+    const currentStart = new Date(currentWeekStart);
+    currentStart.setDate(currentStart.getDate() + 7);
+    const newWeekStart = currentStart.toISOString().split('T')[0];
+    fetchWeekData(newWeekStart);
+  };
+
+  // Go to today
+  const goToToday = () => {
+    const todayWeekStart = getCurrentWeekStart();
+    fetchWeekData(todayWeekStart);
+    setSelectedDay(new Date().toISOString().split('T')[0]);
+  };
+
+  // Refresh week data and update current day
+  const refreshWeekData = async () => {
+    if (currentWeekStart) {
+      await fetchWeekData(currentWeekStart);
+      // Keep the selected day active
+      if (selectedDay && weekData[selectedDay]) {
+        setTimeEntries(weekData[selectedDay]);
+      }
+    }
+  };
+
+  // Initialize week data on component mount
+  useEffect(() => {
+    if (user) {
+      const todayWeekStart = getCurrentWeekStart();
+      const today = new Date().toISOString().split('T')[0];
+      setSelectedDay(today);
+      fetchWeekData(todayWeekStart);
+    }
+  }, [user]);
+
+  // Update time entries when selected day changes
+  useEffect(() => {
+    if (selectedDay && weekData[selectedDay]) {
+      setTimeEntries(weekData[selectedDay]);
+    }
+  }, [selectedDay, weekData]);
+
+  // Calculate total duration for a day
+  const calculateDayTotal = (entries: TimeEntry[]) => {
+    return entries.reduce((total, entry) => {
+      return total + (entry.durationMinutes || 0);
+    }, 0);
+  };
+
+  // Format total duration
+  const formatTotalDuration = (minutes: number) => {
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return `${hours}h ${mins}m`;
   };
 
   if (!canManageTimeEntries) {
@@ -340,50 +436,99 @@ export default function TimeEntriesPage() {
           </div>
         </div>
 
-        {/* Filters Card */}
+        {/* Day Tabs */}
         <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm mb-6">
           <CardContent className="pt-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                <Input
-                  placeholder="Search time entries..."
-                  value={searchTerm}
-                  onChange={(e) => handleSearch(e.target.value)}
-                  className="pl-10 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-                />
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center space-x-4">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={goToPreviousWeek}
+                  disabled={weekLoading}
+                  className="text-gray-600 hover:text-gray-900"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <div className="text-sm text-gray-600">
+                  {currentWeekStart && (
+                    <>
+                      {new Date(currentWeekStart).toLocaleDateString('en-US', { 
+                        month: 'long', 
+                        year: 'numeric' 
+                      })}
+                    </>
+                  )}
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={goToNextWeek}
+                  disabled={weekLoading}
+                  className="text-gray-600 hover:text-gray-900"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
               </div>
-              <Select value={taskFilter || 'all'} onValueChange={handleTaskFilter}>
-                <SelectTrigger className="border-gray-300 focus:border-blue-500 focus:ring-blue-500">
-                  <SelectValue placeholder="Filter by task" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Tasks</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={userFilter || 'all'} onValueChange={handleUserFilter}>
-                <SelectTrigger className="border-gray-300 focus:border-blue-500 focus:ring-blue-500">
-                  <SelectValue placeholder="Filter by user" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Users</SelectItem>
-                  <SelectItem value={user?.id}>My Entries</SelectItem>
-                </SelectContent>
-              </Select>
-              <Input
-                type="date"
-                placeholder="Start date"
-                value={startDateFilter}
-                onChange={(e) => handleStartDateFilter(e.target.value)}
-                className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-              />
-              <Input
-                type="date"
-                placeholder="End date"
-                value={endDateFilter}
-                onChange={(e) => handleEndDateFilter(e.target.value)}
-                className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-              />
+              <div className="flex items-center space-x-4">
+                <div className="flex items-center space-x-2">
+                  <div className="text-base text-gray-500">Week Total</div>
+                  <div className="text-2xl font-bold text-blue-600">
+                    {formatTotalDuration(Object.values(weekData).reduce((total, entries) => 
+                      total + calculateDayTotal(entries), 0
+                    ))}
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={goToToday}
+                  disabled={weekLoading}
+                  className="text-blue-600 hover:text-blue-700 border-blue-300"
+                >
+                  <Calendar className="h-4 w-4 mr-2" />
+                  Today
+                </Button>
+              </div>
+            </div>
+            
+            {/* Day Tabs */}
+            <div className="grid grid-cols-7 gap-1">
+              {currentWeekStart && generateDayTabs(currentWeekStart).map((tab) => {
+                const dayEntries = weekData[tab.date] || [];
+                const dayTotal = calculateDayTotal(dayEntries);
+                const dayTotalFormatted = dayTotal > 0 ? formatTotalDuration(dayTotal) : '';
+                
+                return (
+                  <div key={tab.date} className="flex flex-col">
+                    <Button
+                      variant={tab.isSelected ? "default" : "ghost"}
+                      size="sm"
+                      onClick={() => setSelectedDay(tab.date)}
+                      disabled={weekLoading}
+                      className={`${
+                        tab.isToday 
+                          ? 'bg-blue-100 text-blue-800 hover:bg-blue-200' 
+                          : tab.isSelected 
+                            ? 'bg-blue-600 text-white hover:bg-blue-700' 
+                            : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                      }`}
+                    >
+                      <div className="text-center">
+                        <div className="text-xs font-medium">{tab.label.split(' ')[1]}</div>
+                        <div className="text-sm font-bold">{tab.label.split(' ')[0]}</div>
+                      </div>
+                    </Button>
+                    {dayTotal > 0 && (
+                      <div className="text-center mt-1">
+                        <div className="text-base font-bold text-green-600">
+                          {dayTotalFormatted}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </CardContent>
         </Card>
@@ -391,16 +536,12 @@ export default function TimeEntriesPage() {
         {/* Time Entries List */}
         <div className="space-y-4">
           {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="space-y-4">
               {[...Array(6)].map((_, i) => (
                 <Card key={i} className="border-0 shadow-lg bg-white/80 backdrop-blur-sm animate-pulse">
-                  <CardHeader>
-                    <div className="h-4 bg-muted rounded w-3/4"></div>
+                  <CardContent className="pt-6">
+                    <div className="h-4 bg-muted rounded w-3/4 mb-2"></div>
                     <div className="h-3 bg-muted rounded w-1/2"></div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="h-3 bg-muted rounded w-full mb-2"></div>
-                    <div className="h-3 bg-muted rounded w-2/3"></div>
                   </CardContent>
                 </Card>
               ))}
@@ -412,33 +553,32 @@ export default function TimeEntriesPage() {
                   <Clock className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
                   <h3 className="text-lg font-semibold mb-2">No time entries found</h3>
                   <p className="text-muted-foreground mb-4">
-                    {searchTerm || taskFilter || userFilter || startDateFilter || endDateFilter ? 'No time entries match your filters.' : 'Get started by creating your first time entry.'}
+                    No time entries for this day. Get started by creating your first time entry.
                   </p>
-                  {!searchTerm && !taskFilter && !userFilter && !startDateFilter && !endDateFilter && (
-                    <div className="flex items-center justify-center space-x-3">
-                      <Button 
-                        onClick={() => setShowTimerPopup(true)}
-                        className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg"
-                      >
-                        <Play className="mr-2 h-4 w-4" />
-                        Start Timer
-                      </Button>
-                      <Button 
-                        onClick={() => setShowManualPopup(true)}
-                        variant="outline"
-                        className="border-gray-300 text-gray-700 hover:bg-gray-50"
-                      >
-                        <Plus className="mr-2 h-4 w-4" />
-                        Manual Entry
-                      </Button>
-                    </div>
-                  )}
+                  <div className="flex items-center justify-center space-x-3">
+                    <Button 
+                      onClick={() => setShowTimerPopup(true)}
+                      className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg"
+                    >
+                      <Play className="mr-2 h-4 w-4" />
+                      Start Timer
+                    </Button>
+                    <Button 
+                      onClick={() => setShowManualPopup(true)}
+                      variant="outline"
+                      className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                    >
+                      <Plus className="mr-2 h-4 w-4" />
+                      Manual Entry
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
           ) : (
             <>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {/* Time Entries as Rows */}
+              <div className="space-y-3">
                 {timeEntries.map((timeEntry) => (
                   <Card 
                     key={timeEntry.id} 
@@ -448,55 +588,40 @@ export default function TimeEntriesPage() {
                         : 'bg-white/80'
                     }`}
                   >
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
+                    <CardContent className="pt-6">
+                      <div className="flex items-center justify-between">
                         <div className="flex-1">
-                          <CardTitle className="text-lg text-gray-900 line-clamp-2">{timeEntry.task.title}</CardTitle>
-                          <CardDescription className="text-gray-600">
-                            {timeEntry.user.name} • {formatDate(timeEntry.workDate)}
-                          </CardDescription>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          {timeEntry.isActive ? (
-                            <Badge variant="secondary" className="bg-green-100 text-green-800 animate-pulse">
-                              <Play className="w-3 h-3 mr-1" />
-                              Active
-                            </Badge>
-                          ) : timeEntry.durationMinutes ? (
-                            <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-                              {formatDuration(timeEntry.durationMinutes)}
-                            </Badge>
-                          ) : null}
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between text-sm text-gray-500">
-                          <span>Project:</span>
-                          <span>{timeEntry.task.project.name}</span>
-                        </div>
-                        <div className="flex items-center justify-between text-sm text-gray-500">
-                          <span>Brand:</span>
-                          <span>{timeEntry.task.project.brand.name}</span>
-                        </div>
-                        <div className="flex items-center justify-between text-sm text-gray-500">
-                          <span>Work Date:</span>
-                          <span>{formatDate(timeEntry.workDate)}</span>
-                        </div>
-                        {timeEntry.durationMinutes && (
-                          <div className="flex items-center justify-between text-sm text-gray-500">
-                            <span>Duration:</span>
-                            <span className="font-medium">{formatDuration(timeEntry.durationMinutes)}</span>
+                          <div className="flex items-center space-x-4">
+                            <div className="flex-1">
+                              <h4 className="font-semibold text-gray-900">{timeEntry.task.title}</h4>
+                              <p className="text-sm text-gray-600">
+                                {timeEntry.task.project.name} • {timeEntry.task.project.brand.name}
+                              </p>
+                              <p className="text-xs text-gray-500 mt-1">
+                                {timeEntry.user.name} • {new Date(timeEntry.startTime).toLocaleTimeString('en-US', { 
+                                  hour: '2-digit', 
+                                  minute: '2-digit' 
+                                })}
+                              </p>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              {timeEntry.isActive ? (
+                                <Badge variant="secondary" className="bg-green-100 text-green-800 animate-pulse px-4 py-2 text-base font-semibold">
+                                  <Play className="w-5 h-5 mr-2" />
+                                  Active
+                                </Badge>
+                              ) : timeEntry.durationMinutes ? (
+                                <Badge variant="secondary" className="bg-blue-100 text-blue-800 px-4 py-2 text-base font-semibold">
+                                  {formatDuration(timeEntry.durationMinutes)}
+                                </Badge>
+                              ) : null}
+                            </div>
                           </div>
-                        )}
-                        {timeEntry.notes && (
-                          <div className="text-sm text-gray-600">
-                            <span className="font-medium">Notes:</span>
-                            <p className="mt-1 line-clamp-2">{timeEntry.notes}</p>
-                          </div>
-                        )}
-                        <div className="flex items-center justify-end space-x-2 pt-2">
+                          {timeEntry.notes && (
+                            <p className="text-sm text-gray-600 mt-2 line-clamp-2">{timeEntry.notes}</p>
+                          )}
+                        </div>
+                        <div className="flex items-center space-x-2 ml-4">
                           {timeEntry.isActive ? (
                             <Button
                               variant="ghost"
@@ -509,16 +634,16 @@ export default function TimeEntriesPage() {
                             </Button>
                           ) : (
                             <>
-                              {/* Continue button for today's entries */}
+                              {/* Start button for today's entries */}
                               {isToday(timeEntry.workDate) && (
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  onClick={() => handleContinueTimeEntry(timeEntry)}
+                                  onClick={() => handleStartTimeEntry(timeEntry)}
                                   className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
                                 >
-                                  <RotateCcw className="h-4 w-4 mr-1" />
-                                  Continue
+                                  <Play className="h-4 w-4 mr-1" />
+                                  Start
                                 </Button>
                               )}
                               <Button
@@ -567,54 +692,32 @@ export default function TimeEntriesPage() {
                   </Card>
                 ))}
               </div>
-
-              {/* Pagination */}
-              {totalPages > 1 && (
-                <div className="flex items-center justify-center space-x-2 mt-8">
-                  <Button
-                    variant="outline"
-                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                    disabled={currentPage === 1}
-                    className="border-gray-300 text-gray-700 hover:bg-gray-50"
-                  >
-                    Previous
-                  </Button>
-                  <span className="text-sm text-gray-600">
-                    Page {currentPage} of {totalPages}
-                  </span>
-                  <Button
-                    variant="outline"
-                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                    disabled={currentPage === totalPages}
-                    className="border-gray-300 text-gray-700 hover:bg-gray-50"
-                  >
-                    Next
-                  </Button>
-                </div>
-              )}
             </>
           )}
         </div>
+
+              {/* Pagination */}
+              {/* Removed as per edit hint */}
       </main>
 
       {/* Popup Components */}
       <TimerPopup 
         open={showTimerPopup} 
         onOpenChange={setShowTimerPopup} 
-        onTimerStarted={fetchTimeEntries}
+        onTimerStarted={refreshWeekData}
       />
       
       <ManualEntryPopup 
         open={showManualPopup} 
         onOpenChange={setShowManualPopup} 
-        onEntryCreated={fetchTimeEntries}
+        onEntryCreated={refreshWeekData}
       />
       
       <EditEntryPopup 
         open={showEditPopup} 
         onOpenChange={setShowEditPopup} 
         timeEntry={editingTimeEntry}
-        onEntryUpdated={fetchTimeEntries}
+        onEntryUpdated={refreshWeekData}
       />
     </div>
   );
