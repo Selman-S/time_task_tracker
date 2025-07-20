@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { Users, FolderOpen, CheckCircle, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
@@ -13,29 +14,22 @@ interface User {
 }
 
 export default function DashboardPage() {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const [user, setUser] = useState<User | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
     const userData = localStorage.getItem('user');
-
-    if (!token || !userData) {
-      router.push('/login');
-      return;
+    if (userData) {
+      try {
+        const user = JSON.parse(userData);
+        setUser(user);
+        setIsAdmin(user.role === 'SUPER_ADMIN' || user.role === 'ADMIN');
+      } catch (error) {
+        console.error('Error parsing user data:', error);
+      }
     }
-
-    try {
-      const user = JSON.parse(userData);
-      setUser(user);
-    } catch (error) {
-      console.error('Error parsing user data:', error);
-      router.push('/login');
-    } finally {
-      setLoading(false);
-    }
-  }, [router]);
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -43,21 +37,24 @@ export default function DashboardPage() {
     router.push('/login');
   };
 
-  const isAdmin = user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN';
-
-  if (loading) {
+  if (!user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading dashboard...</p>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+        <div className="container mx-auto px-4 py-8">
+          <Card className="border-0 shadow-2xl bg-white/80 backdrop-blur-sm">
+            <CardContent className="pt-6">
+              <div className="text-center">
+                <div className="w-12 h-12 bg-muted rounded-full mx-auto mb-4"></div>
+                <h3 className="text-lg font-semibold mb-2">Loading...</h3>
+                <p className="text-muted-foreground">
+                  Please wait while we load your dashboard.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     );
-  }
-
-  if (!user) {
-    return null;
   }
 
   return (
@@ -67,19 +64,21 @@ export default function DashboardPage() {
         <div className="container mx-auto px-4 py-4">
           <div className="flex justify-between items-center">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
-                <span className="text-white font-bold text-xl">T</span>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+                <p className="text-sm text-gray-600">Welcome back, {user.name}</p>
               </div>
-              <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                TimeTracker Pro
-              </span>
             </div>
             <div className="flex items-center space-x-4">
               <div className="text-right">
-                <p className="text-sm text-gray-600">Welcome back,</p>
-                <p className="font-medium text-gray-900">{user.name}</p>
+                <p className="text-sm text-gray-600">Role: {user.role}</p>
+                <p className="font-medium text-gray-900">{user.email}</p>
               </div>
-              <Button variant="outline" onClick={handleLogout}>
+              <Button
+                variant="outline"
+                onClick={handleLogout}
+                className="border-gray-300 text-gray-700 hover:bg-gray-50"
+              >
                 Logout
               </Button>
             </div>
@@ -91,11 +90,9 @@ export default function DashboardPage() {
       <main className="container mx-auto px-4 py-8">
         {/* Welcome Section */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Welcome to your dashboard, {user.name}! 👋
-          </h1>
+          <h2 className="text-3xl font-bold text-gray-900 mb-2">Welcome to Time Tracker</h2>
           <p className="text-gray-600">
-            Here's an overview of your time tracking activities and projects.
+            Manage your projects, tasks, and time tracking all in one place.
           </p>
         </div>
 
@@ -121,8 +118,33 @@ export default function DashboardPage() {
                 >
                   Manage Users
                 </Button>
-                <Button variant="outline" className="border-purple-300 text-purple-700 hover:bg-purple-50">
+                <Button 
+                  onClick={() => router.push('/brands')}
+                  variant="outline" 
+                  className="border-purple-300 text-purple-700 hover:bg-purple-50"
+                >
                   Manage Brands
+                </Button>
+                <Button 
+                  onClick={() => router.push('/projects')}
+                  variant="outline" 
+                  className="border-purple-300 text-purple-700 hover:bg-purple-50"
+                >
+                  Manage Projects
+                </Button>
+                <Button 
+                  onClick={() => router.push('/tasks')}
+                  variant="outline" 
+                  className="border-purple-300 text-purple-700 hover:bg-purple-50"
+                >
+                  Manage Tasks
+                </Button>
+                <Button 
+                  onClick={() => router.push('/time-entries')}
+                  variant="outline" 
+                  className="border-purple-300 text-purple-700 hover:bg-purple-50"
+                >
+                  Time Tracking
                 </Button>
                 <Button variant="outline" className="border-purple-300 text-purple-700 hover:bg-purple-50">
                   System Settings
@@ -214,19 +236,31 @@ export default function DashboardPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-              <Button className="w-full justify-start" variant="outline">
+              <Button 
+                onClick={() => router.push('/time-entries')}
+                className="w-full justify-start" 
+                variant="outline"
+              >
                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                Start Timer
+                Time Tracking
               </Button>
-              <Button className="w-full justify-start" variant="outline">
+              <Button 
+                onClick={() => router.push('/projects/new')}
+                className="w-full justify-start" 
+                variant="outline"
+              >
                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                 </svg>
                 Create Project
               </Button>
-              <Button className="w-full justify-start" variant="outline">
+              <Button 
+                onClick={() => router.push('/tasks/new')}
+                className="w-full justify-start" 
+                variant="outline"
+              >
                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
@@ -285,40 +319,6 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
         </div>
-
-        {/* User Info */}
-        <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-              <span>Account Information</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm font-medium text-gray-500">Name</p>
-                <p className="text-lg text-gray-900">{user.name}</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-500">Email</p>
-                <p className="text-lg text-gray-900">{user.email}</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-500">Role</p>
-                <p className="text-lg text-gray-900 capitalize">{user.role.toLowerCase().replace('_', ' ')}</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-500">Account Status</p>
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                  Active
-                </span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
       </main>
     </div>
   );
