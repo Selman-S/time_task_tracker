@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
+import BrandPermissionManager from '@/components/brands/BrandPermissionManager';
 
 interface Project {
   id: string;
@@ -403,41 +404,12 @@ export default function BrandDetailPage() {
                 </TabsContent>
 
                 <TabsContent value="permissions" className="mt-6">
-                  {brand.permissions.length === 0 ? (
-                    <div className="text-center py-8">
-                      <Users className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                      <h3 className="text-lg font-semibold mb-2">No permissions set</h3>
-                      <p className="text-muted-foreground">
-                        No users have been assigned to this brand yet.
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {brand.permissions.map((permission) => (
-                        <Card key={permission.id} className="border-0 shadow-md bg-gray-50/50">
-                          <CardContent className="p-4">
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center space-x-3">
-                                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
-                                  <User className="w-5 h-5 text-white" />
-                                </div>
-                                <div>
-                                  <p className="font-medium text-gray-900">{permission.user.name}</p>
-                                  <p className="text-sm text-gray-600">{permission.user.email}</p>
-                                </div>
-                              </div>
-                              <div className="flex items-center space-x-2">
-                                <Badge className={getPermissionLevelColor(permission.permissionLevel)}>
-                                  {permission.permissionLevel}
-                                </Badge>
-                                <span className="text-sm text-gray-500">{permission.user.role}</span>
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
-                  )}
+                  <BrandPermissionManager
+                    brandId={brandId}
+                    brandName={brand.name}
+                    permissions={brand.permissions}
+                    onPermissionsUpdated={fetchBrand}
+                  />
                 </TabsContent>
               </Tabs>
             </CardContent>
