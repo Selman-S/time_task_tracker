@@ -70,18 +70,50 @@ export default function DashboardLayout({
     toast.success('Logged out successfully');
   };
 
-  const navigation = [
-    { name: 'Dashboard', href: '/dashboard', icon: BarChart3 },
-    { name: 'Users', href: '/admin/users', icon: Users },
-    { name: 'Brands', href: '/brands', icon: Building2 },
-    { name: 'Projects', href: '/projects', icon: FolderOpen },
-    { name: 'Tasks', href: '/tasks', icon: CheckSquare },
-    { name: 'Time Entries', href: '/time-entries', icon: Clock },
-  ];
+  // Navigation menu based on user role
+  const getNavigationItems = () => {
+    if (user?.role === 'CLIENT') {
+      return [
+        { name: 'Client Dashboard', href: '/client', icon: BarChart3 },
+        { name: 'My Projects', href: '/client/projects', icon: FolderOpen }, // This will be dynamic based on brand
+      ];
+    }
+    
+    // Default navigation for other roles (ADMIN, SUPER_ADMIN, MANAGER, WORKER)
+    const defaultNavigation = [
+      { name: 'Dashboard', href: '/dashboard', icon: BarChart3 },
+    ];
+    
+    // Add role-specific items
+    if (user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN') {
+      defaultNavigation.push({ name: 'Users', href: '/admin/users', icon: Users });
+    }
+    
+    if (user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN' || user?.role === 'MANAGER') {
+      defaultNavigation.push(
+        { name: 'Brands', href: '/brands', icon: Building2 },
+        { name: 'Projects', href: '/projects', icon: FolderOpen }
+      );
+    }
+    
+    if (user?.role !== 'CLIENT') {
+      defaultNavigation.push(
+        { name: 'Tasks', href: '/tasks', icon: CheckSquare },
+        { name: 'Time Entries', href: '/time-entries', icon: Clock }
+      );
+    }
+    
+    return defaultNavigation;
+  };
+
+  const navigation = getNavigationItems();
 
   const isActive = (href: string) => {
     if (href === '/dashboard') {
       return pathname === '/dashboard';
+    }
+    if (href === '/client') {
+      return pathname === '/client' || pathname === '/client/';
     }
     return pathname.startsWith(href);
   };
