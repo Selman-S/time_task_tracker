@@ -208,15 +208,44 @@ export default function NewInvoicePage() {
   // Submit form
   const handleSubmit = async (status: 'DRAFT' | 'SENT') => {
     try {
+      console.log('Submitting invoice with data:', formData, 'items:', items);
+      
       // Validation
-      if (!formData.brandId || !formData.clientUserId || !formData.title || !formData.dueDate) {
-        toast.error('Please fill in all required fields');
+      if (!formData.brandId) {
+        toast.error('Please select a brand');
+        return;
+      }
+      
+      if (!formData.clientUserId) {
+        toast.error('Please select a client');
+        return;
+      }
+      
+      if (!formData.title.trim()) {
+        toast.error('Please enter an invoice title');
+        return;
+      }
+      
+      if (!formData.dueDate) {
+        toast.error('Please select a due date');
         return;
       }
 
-      if (items.some(item => !item.description || item.quantity <= 0 || item.unitPrice < 0)) {
-        toast.error('Please complete all invoice items');
-        return;
+      // Validate items
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        if (!item.description.trim()) {
+          toast.error(`Please enter description for item ${i + 1}`);
+          return;
+        }
+        if (item.quantity <= 0) {
+          toast.error(`Please enter a valid quantity for item ${i + 1}`);
+          return;
+        }
+        if (item.unitPrice < 0) {
+          toast.error(`Unit price cannot be negative for item ${i + 1}`);
+          return;
+        }
       }
 
       setSubmitting(true);
