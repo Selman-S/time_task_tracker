@@ -24,12 +24,24 @@ export default function DashboardPage() {
       try {
         const user = JSON.parse(userData);
         setUser(user);
+        
+        // Redirect CLIENT users to their specific dashboard
+        if (user.role === 'CLIENT') {
+          router.push('/client');
+          return;
+        }
+        
         setIsAdmin(user.role === 'SUPER_ADMIN' || user.role === 'ADMIN');
       } catch (error) {
         console.error('Error parsing user data:', error);
       }
     }
-  }, []);
+  }, [router]);
+
+  // Don't render anything for CLIENT users since they're being redirected
+  if (user?.role === 'CLIENT') {
+    return null;
+  }
 
   if (!user) {
     return (
