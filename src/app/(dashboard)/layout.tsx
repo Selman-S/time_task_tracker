@@ -74,8 +74,10 @@ export default function DashboardLayout({
   const getNavigationItems = () => {
     if (user?.role === 'CLIENT') {
       return [
-        { name: 'Client Dashboard', href: '/client', icon: BarChart3 },
-        { name: 'My Projects', href: '/client/projects', icon: FolderOpen }, // This will be dynamic based on brand
+        { name: 'Dashboard', href: '/client', icon: BarChart3 },
+        { name: 'All Projects', href: '/client/projects', icon: FolderOpen },
+        { name: 'Invoices', href: '/client/invoices', icon: Building2 },
+        { name: 'Reports', href: '/client/reports', icon: CheckSquare },
       ];
     }
     
@@ -93,6 +95,12 @@ export default function DashboardLayout({
       defaultNavigation.push(
         { name: 'Brands', href: '/brands', icon: Building2 },
         { name: 'Projects', href: '/projects', icon: FolderOpen }
+      );
+    }
+    
+    if (user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN') {
+      defaultNavigation.push(
+        { name: 'Invoices', href: '/admin/invoices', icon: Building2 }
       );
     }
     
