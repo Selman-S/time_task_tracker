@@ -426,9 +426,6 @@ export default function AdminUsersPage() {
                     <CardTitle>Permission Management</CardTitle>
                     <CardDescription>Manage brand and project permissions for this user.</CardDescription>
                   </div>
-                  <Button variant="ghost" size="icon" onClick={() => setPermissionDialogOpen(false)}>
-                    <X className="w-5 h-5" />
-                  </Button>
                 </CardHeader>
                 <CardContent className="space-y-6 pt-0">
                   <div>
