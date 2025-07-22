@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { useToast } from '@/hooks/use-toast';
 import React from 'react';
 import { Eye, EyeOff } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface QuickUserFormProps {
   open: boolean;
@@ -173,11 +174,46 @@ export default function QuickUserForm({ open, onOpenChange, onUserCreated, editU
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="SUPER_ADMIN">Super Admin</SelectItem>
-                <SelectItem value="ADMIN">Admin</SelectItem>
-                <SelectItem value="MANAGER">Manager</SelectItem>
-                <SelectItem value="WORKER">Worker</SelectItem>
-                <SelectItem value="CLIENT">Client</SelectItem>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <SelectItem value="SUPER_ADMIN">Super Admin</SelectItem>
+                  </TooltipTrigger>
+                  <TooltipContent sideOffset={8}>
+                    System owner, all permissions
+                  </TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <SelectItem value="ADMIN">Admin</SelectItem>
+                  </TooltipTrigger>
+                  <TooltipContent sideOffset={8}>
+                    Brand manager, manage assigned brands
+                  </TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <SelectItem value="MANAGER">Manager</SelectItem>
+                  </TooltipTrigger>
+                  <TooltipContent sideOffset={8}>
+                    Project manager, manage assigned projects
+                  </TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <SelectItem value="WORKER">Worker</SelectItem>
+                  </TooltipTrigger>
+                  <TooltipContent sideOffset={8}>
+                    Regular user, view assigned tasks, log time
+                  </TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <SelectItem value="CLIENT">Client</SelectItem>
+                  </TooltipTrigger>
+                  <TooltipContent sideOffset={8}>
+                    Brand owner/client, view own brand's projects and reports
+                  </TooltipContent>
+                </Tooltip>
               </SelectContent>
             </Select>
           </div>
