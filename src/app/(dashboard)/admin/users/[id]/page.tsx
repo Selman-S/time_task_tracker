@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Building2, FolderOpen, ShieldCheck, Trash2, Plus, User, Calendar, Users, Info, Clock, CheckCircle, PlusCircle, StickyNote, Edit, X } from 'lucide-react';
+import { ArrowLeft, Building2, FolderOpen, ShieldCheck, Trash2, Plus, Calendar, Users, Info, Clock, CheckCircle, PlusCircle, StickyNote, Edit, X, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -13,84 +13,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { toast } from '@/hooks/use-toast';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface BrandPermission {
-  id: string;
-  permissionLevel: string;
-  brand: {
-    id: string;
-    name: string;
-    description?: string;
-  };
-}
-
-interface ProjectPermission {
-  id: string;
-  permissionLevel: string;
-  project: {
-    id: string;
-    name: string;
-    description?: string;
-    brand: {
-      id: string;
-      name: string;
-    };
-  };
-}
-
-interface Brand {
-  id: string;
-  name: string;
-  description?: string;
-}
-
-interface Project {
-  id: string;
-  name: string;
-  description?: string;
-  brand: {
-    id: string;
-    name: string;
-  };
-}
-
-interface UserNote {
-  id: string;
-  note: string;
-  createdAt: string;
-  updatedAt: string;
-  admin: {
-    id: string;
-    name: string;
-    email: string;
-  };
-}
-
-interface Activity {
-  id: string;
-  type: 'time_entry' | 'task_assigned' | 'task_created';
-  title: string;
-  description: string;
-  timestamp: string;
-  data: any;
-}
-
-interface UserDetails {
-  user: User;
-  brandPermissions: BrandPermission[];
-  projectPermissions: ProjectPermission[];
-  availableBrands: Brand[];
-  availableProjects: Project[];
-}
+import UserOverview from '@/components/users/UserOverview';
+import BrandPermissions from '@/components/users/BrandPermissions';
+import ProjectPermissions from '@/components/users/ProjectPermissions';
+import UserActivities from '@/components/users/UserActivities';
+import UserNotes from '@/components/users/UserNotes';
+import { User as UserType, BrandPermission, ProjectPermission, Brand, Project, UserNote, Activity, UserDetails } from '@/types/user';
 
 export default function UserDetailPage() {
   const params = useParams();
@@ -825,592 +753,111 @@ export default function UserDetailPage() {
 
         {/* Permissions Tabs */}
         <Tabs defaultValue="brands" className="space-y-6">
-          <TabsList className="bg-white/80 backdrop-blur-sm border-0 shadow-lg w-full grid grid-cols-4 gap-1 p-1">
-            <TabsTrigger value="brands" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-xs px-2 py-2 h-auto">
-              <Building2 className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
-              <span className="hidden sm:inline">Brand Permissions</span>
-              <span className="sm:hidden">Brands</span>
-            </TabsTrigger>
-            <TabsTrigger value="projects" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-xs px-2 py-2 h-auto">
-              <FolderOpen className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
-              <span className="hidden sm:inline">Project Permissions</span>
-              <span className="sm:hidden">Projects</span>
-            </TabsTrigger>
-            <TabsTrigger value="activities" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-xs px-2 py-2 h-auto">
-              <Clock className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
-              <span className="hidden sm:inline">Activities</span>
-              <span className="sm:hidden">Activity</span>
-            </TabsTrigger>
-            <TabsTrigger value="notes" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-xs px-2 py-2 h-auto">
-              <StickyNote className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
-              <span className="hidden sm:inline">Notes</span>
-              <span className="sm:hidden">Notes</span>
-            </TabsTrigger>
-          </TabsList>
+                  <TabsList className="bg-white/80 backdrop-blur-sm border-0 shadow-lg w-full grid grid-cols-5 gap-1 p-1">
+          <TabsTrigger value="overview" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-xs px-2 py-2 h-auto">
+            <User className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+            <span className="hidden sm:inline">Overview</span>
+            <span className="sm:hidden">Profile</span>
+          </TabsTrigger>
+          <TabsTrigger value="brands" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-xs px-2 py-2 h-auto">
+            <Building2 className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+            <span className="hidden sm:inline">Brand Permissions</span>
+            <span className="sm:hidden">Brands</span>
+          </TabsTrigger>
+          <TabsTrigger value="projects" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-xs px-2 py-2 h-auto">
+            <FolderOpen className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+            <span className="hidden sm:inline">Project Permissions</span>
+            <span className="sm:hidden">Projects</span>
+          </TabsTrigger>
+          <TabsTrigger value="activities" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-xs px-2 py-2 h-auto">
+            <Clock className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+            <span className="hidden sm:inline">Activities</span>
+            <span className="sm:hidden">Activity</span>
+          </TabsTrigger>
+          <TabsTrigger value="notes" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-xs px-2 py-2 h-auto">
+            <StickyNote className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+            <span className="hidden sm:inline">Notes</span>
+            <span className="sm:hidden">Notes</span>
+          </TabsTrigger>
+        </TabsList>
+
+                    {/* Overview Tab */}
+          <TabsContent value="overview">
+            <UserOverview
+              userDetails={userDetails}
+              activities={activities}
+              getRoleBadgeVariant={getRoleBadgeVariant}
+              formatDate={formatDate}
+              getActivityIcon={getActivityIcon}
+              getActivityBadgeVariant={getActivityBadgeVariant}
+            />
+          </TabsContent>
 
           {/* Brand Permissions Tab */}
           <TabsContent value="brands">
-            <Card className="border-0 shadow-2xl bg-white/80 backdrop-blur-sm">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="flex items-center gap-2">
-                      <Building2 className="w-5 h-5 text-blue-600" />
-                      Brand Permissions
-                    </CardTitle>
-                    <CardDescription>
-                      Manage user access to different brands
-                    </CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {/* Add Brand Permission Form */}
-                <Card className="bg-slate-50/50 border border-slate-200">
-                  <CardHeader>
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      <Plus className="w-5 h-5 text-green-600" />
-                      Add Brand Permission
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex flex-col sm:grid sm:grid-cols-1 md:grid-cols-3 gap-4 items-start sm:items-center">
-                      {/* Brand Dropdown */}
-                      <Select value={selectedBrandId} onValueChange={setSelectedBrandId}>
-                        <SelectTrigger className="h-10">
-                          <SelectValue placeholder="Select Brand" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {availableBrands
-                            .filter(brand => !userHasBrandPermission(brand.id))
-                            .map((brand) => (
-                              <SelectItem key={brand.id} value={brand.id}>
-                                {brand.name}
-                              </SelectItem>
-                            ))}
-                        </SelectContent>
-                      </Select>
-                      {/* Permission Level Dropdown + Info Icon */}
-                      <div className="flex items-center gap-2 w-full sm:w-auto">
-                        <Select value={selectedBrandPermissionLevel} onValueChange={setSelectedBrandPermissionLevel}>
-                          <SelectTrigger className="h-10 flex-1 sm:flex-none">
-                            <SelectValue placeholder="Select Permission Level" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="read">Read</SelectItem>
-                            <SelectItem value="write">Write</SelectItem>
-                            <SelectItem value="admin">Admin</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <span tabIndex={0}><Info className="w-4 h-4 text-blue-500 cursor-pointer" /></span>
-                          </TooltipTrigger>
-                          <TooltipContent sideOffset={8}>
-                            <div className="text-xs whitespace-pre-line">
-                              READ: View only access.<br></br>
-                              WRITE: Create and edit access.<br></br>
-                              ADMIN: Full management access (add/remove users, change permissions).
-                            </div>
-                          </TooltipContent>
-                        </Tooltip>
-                      </div>
-                      {/* Add Button */}
-                      <Button 
-                        onClick={handleAddBrandPermission}
-                        disabled={!selectedBrandId || userHasBrandPermission(selectedBrandId) || addingBrandPermission || !selectedBrandPermissionLevel}
-                        className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 w-full sm:w-auto h-10"
-                      >
-                        {addingBrandPermission ? 'Adding...' : 'Add Permission'}
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Current Brand Permissions */}
-                <div className="space-y-4">
-                  <h4 className="font-semibold text-lg">Current Brand Permissions</h4>
-                  {brandPermissions.length === 0 ? (
-                    <div className="text-center py-8">
-                      <Building2 className="w-12 h-12 mx-auto text-gray-400 mb-4" />
-                      <p className="text-gray-500">No brand permissions assigned</p>
-                    </div>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <div className="min-w-[350px] divide-y divide-gray-200 bg-white rounded-md border border-gray-200">
-                        {brandPermissions.map((perm) => (
-                          <div key={perm.id} className="flex items-center px-4 py-2 hover:bg-slate-50 transition-all">
-                            <div className="flex-1">
-                              <div className="font-medium text-gray-900">{perm.brand.name}</div>
-                              {perm.brand.description && (
-                                <div className="text-xs text-gray-500">{perm.brand.description}</div>
-                              )}
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Select 
-                                value={perm.permissionLevel.toLowerCase()} 
-                                onValueChange={level => handleUpdateBrandPermissionLevel(perm.brand.id, level)}
-                                disabled={updatingPermissions.has(`brand-${perm.brand.id}`)}
-                              >
-                                <SelectTrigger className="w-24 h-8 text-xs">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="read">Read</SelectItem>
-                                  <SelectItem value="write">Write</SelectItem>
-                                  <SelectItem value="admin">Admin</SelectItem>
-                                </SelectContent>
-                              </Select>
-                              {updatingPermissions.has(`brand-${perm.brand.id}`) && (
-                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                              )}
-                              <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                                    disabled={removingPermissions.has(`brand-${perm.brand.id}`)}
-                                  >
-                                    {removingPermissions.has(`brand-${perm.brand.id}`) ? (
-                                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600"></div>
-                                    ) : (
-                                      <Trash2 className="w-4 h-4" />
-                                    )}
-                                  </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent className="border-0 shadow-2xl">
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle>Remove Permission</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                      Are you sure you want to remove {user.name}'s permission for "{perm.brand.name}"?
-                                    </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                    <AlertDialogAction
-                                      onClick={() => handleRemoveBrandPermission(perm.brand.id)}
-                                      className="bg-red-600 hover:bg-red-700"
-                                    >
-                                      Remove
-                                    </AlertDialogAction>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+            <BrandPermissions
+              userDetails={userDetails}
+              brandPermissions={brandPermissions}
+              availableBrands={availableBrands}
+              selectedBrandId={selectedBrandId}
+              setSelectedBrandId={setSelectedBrandId}
+              selectedBrandPermissionLevel={selectedBrandPermissionLevel}
+              setSelectedBrandPermissionLevel={setSelectedBrandPermissionLevel}
+              addingBrandPermission={addingBrandPermission}
+              userHasBrandPermission={userHasBrandPermission}
+              handleAddBrandPermission={handleAddBrandPermission}
+              handleRemoveBrandPermission={handleRemoveBrandPermission}
+              handleUpdateBrandPermissionLevel={handleUpdateBrandPermissionLevel}
+              getPermissionBadgeVariant={getPermissionBadgeVariant}
+            />
           </TabsContent>
 
           {/* Project Permissions Tab */}
           <TabsContent value="projects">
-            <Card className="border-0 shadow-2xl bg-white/80 backdrop-blur-sm">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="flex items-center gap-2">
-                      <FolderOpen className="w-5 h-5 text-green-600" />
-                      Project Permissions
-                    </CardTitle>
-                    <CardDescription>
-                      Manage user access to specific projects
-                    </CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {/* Add Project Permission Form */}
-                <Card className="bg-slate-50/50 border border-slate-200">
-                  <CardHeader>
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      <Plus className="w-5 h-5 text-green-600" />
-                      Add Project Permission
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex flex-col sm:grid sm:grid-cols-1 md:grid-cols-3 gap-4 items-start sm:items-center">
-                      {/* Project Dropdown */}
-                      <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
-                        <SelectTrigger className="h-10">
-                          <SelectValue placeholder="Select Project" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {availableProjects
-                            .filter(project => !userHasProjectPermission(project.id))
-                            .map((project) => (
-                              <SelectItem key={project.id} value={project.id}>
-                                {project.brand.name} - {project.name}
-                              </SelectItem>
-                            ))}
-                        </SelectContent>
-                      </Select>
-                      {/* Permission Level Dropdown + Info Icon */}
-                      <div className="flex items-center gap-2 w-full sm:w-auto">
-                        <Select value={selectedProjectPermissionLevel} onValueChange={setSelectedProjectPermissionLevel}>
-                          <SelectTrigger className="h-10 flex-1 sm:flex-none">
-                            <SelectValue placeholder="Select Permission Level" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="read">Read</SelectItem>
-                            <SelectItem value="write">Write</SelectItem>
-                            <SelectItem value="admin">Admin</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <span tabIndex={0}><Info className="w-4 h-4 text-blue-500 cursor-pointer" /></span>
-                          </TooltipTrigger>
-                          <TooltipContent sideOffset={8}>
-                            <div className="text-xs whitespace-pre-line">
-                              READ: View only access.<br></br>
-                              WRITE: Create and edit access.<br></br>
-                              ADMIN: Full management access (add/remove users, change permissions).
-                            </div>
-                          </TooltipContent>
-                        </Tooltip>
-                      </div>
-                      {/* Add Button */}
-                      <Button 
-                        onClick={handleAddProjectPermission}
-                        disabled={!selectedProjectId || userHasProjectPermission(selectedProjectId) || addingProjectPermission || !selectedProjectPermissionLevel}
-                        className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 w-full sm:w-auto h-10"
-                      >
-                        {addingProjectPermission ? 'Adding...' : 'Add Permission'}
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Current Project Permissions */}
-                <div className="space-y-4">
-                  <h4 className="font-semibold text-lg">Current Project Permissions</h4>
-                  {projectPermissions.length === 0 ? (
-                    <div className="text-center py-8">
-                      <FolderOpen className="w-12 h-12 mx-auto text-gray-400 mb-4" />
-                      <p className="text-gray-500">No project permissions assigned</p>
-                    </div>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <div className="min-w-[350px] divide-y divide-gray-200 bg-white rounded-md border border-gray-200">
-                        {projectPermissions.map((perm) => (
-                          <div key={perm.id} className="flex items-center px-4 py-2 hover:bg-slate-50 transition-all">
-                            <div className="flex-1">
-                              <div className="font-medium text-gray-900">{perm.project.name}</div>
-                              <div className="text-xs text-gray-500">Brand: {perm.project.brand.name}</div>
-                              {perm.project.description && (
-                                <div className="text-xs text-gray-400">{perm.project.description}</div>
-                              )}
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Select 
-                                value={perm.permissionLevel.toLowerCase()} 
-                                onValueChange={level => handleUpdateProjectPermissionLevel(perm.project.id, level)}
-                                disabled={updatingPermissions.has(`project-${perm.project.id}`)}
-                              >
-                                <SelectTrigger className="w-24 h-8 text-xs">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="read">Read</SelectItem>
-                                  <SelectItem value="write">Write</SelectItem>
-                                  <SelectItem value="admin">Admin</SelectItem>
-                                </SelectContent>
-                              </Select>
-                              {updatingPermissions.has(`project-${perm.project.id}`) && (
-                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                              )}
-                              <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                                    disabled={removingPermissions.has(`project-${perm.project.id}`)}
-                                  >
-                                    {removingPermissions.has(`project-${perm.project.id}`) ? (
-                                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600"></div>
-                                    ) : (
-                                      <Trash2 className="w-4 h-4" />
-                                    )}
-                                  </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent className="border-0 shadow-2xl">
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle>Remove Permission</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                      Are you sure you want to remove {user.name}'s permission for "{perm.project.name}"?
-                                    </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                    <AlertDialogAction
-                                      onClick={() => handleRemoveProjectPermission(perm.project.id)}
-                                      className="bg-red-600 hover:bg-red-700"
-                                    >
-                                      Remove
-                                    </AlertDialogAction>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+            <ProjectPermissions
+              userDetails={userDetails}
+              projectPermissions={projectPermissions}
+              availableProjects={availableProjects}
+              selectedProjectId={selectedProjectId}
+              setSelectedProjectId={setSelectedProjectId}
+              selectedProjectPermissionLevel={selectedProjectPermissionLevel}
+              setSelectedProjectPermissionLevel={setSelectedProjectPermissionLevel}
+              addingProjectPermission={addingProjectPermission}
+              userHasProjectPermission={userHasProjectPermission}
+              handleAddProjectPermission={handleAddProjectPermission}
+              handleRemoveProjectPermission={handleRemoveProjectPermission}
+              handleUpdateProjectPermissionLevel={handleUpdateProjectPermissionLevel}
+              getPermissionBadgeVariant={getPermissionBadgeVariant}
+            />
           </TabsContent>
 
           {/* Activities Tab */}
           <TabsContent value="activities">
-            <Card className="border-0 shadow-2xl bg-white/80 backdrop-blur-sm">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="flex items-center gap-2">
-                      <Clock className="w-5 h-5 text-blue-600" />
-                      Recent Activities
-                    </CardTitle>
-                    <CardDescription>
-                      View user's recent activities and work history
-                    </CardDescription>
-                  </div>
-                  <Button 
-                    onClick={fetchUserActivities}
-                    disabled={activitiesLoading}
-                    variant="outline"
-                    size="sm"
-                  >
-                    {activitiesLoading ? 'Loading...' : 'Refresh'}
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {activitiesLoading ? (
-                  <div className="text-center py-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                    <p className="text-gray-500 mt-2">Loading activities...</p>
-                  </div>
-                ) : activities.length === 0 ? (
-                  <div className="text-center py-8">
-                    <Clock className="w-12 h-12 mx-auto text-gray-400 mb-4" />
-                    <p className="text-gray-500">No recent activities found</p>
-                    <Button 
-                      onClick={fetchUserActivities}
-                      variant="outline"
-                      size="sm"
-                      className="mt-2"
-                    >
-                      Load Activities
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {activities.map((activity) => (
-                      <div key={activity.id} className="flex items-start gap-4 p-4 bg-slate-50/50 rounded-lg border border-slate-200 hover:bg-slate-100/50 transition-all">
-                        <div className="flex-shrink-0 mt-1">
-                          {getActivityIcon(activity.type)}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h4 className="font-medium text-gray-900">{activity.title}</h4>
-                            <Badge variant={getActivityBadgeVariant(activity.type)} className="text-xs">
-                              {activity.type.replace('_', ' ')}
-                            </Badge>
-                          </div>
-                          <p className="text-sm text-gray-600 mb-2">{activity.description}</p>
-                          <div className="flex items-center text-xs text-gray-500">
-                            <Calendar className="w-3 h-3 mr-1" />
-                            {formatDate(activity.timestamp)}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            <UserActivities
+              activities={activities}
+              formatDate={formatDate}
+              getActivityIcon={getActivityIcon}
+              getActivityBadgeVariant={getActivityBadgeVariant}
+            />
           </TabsContent>
 
           {/* Notes Tab */}
           <TabsContent value="notes">
-            <Card className="border-0 shadow-2xl bg-white/80 backdrop-blur-sm">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="flex items-center gap-2">
-                      <StickyNote className="w-5 h-5 text-blue-600" />
-                      Admin Notes
-                    </CardTitle>
-                    <CardDescription>
-                      Add and manage notes about this user
-                    </CardDescription>
-                  </div>
-                  <Button 
-                    onClick={fetchUserNotes}
-                    disabled={notesLoading}
-                    variant="outline"
-                    size="sm"
-                  >
-                    {notesLoading ? 'Loading...' : 'Refresh'}
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {/* Add New Note Form */}
-                <Card className="bg-slate-50/50 border border-slate-200">
-                  <CardHeader>
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      <Plus className="w-5 h-5 text-green-600" />
-                      Add New Note
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <textarea
-                        value={newNote}
-                        onChange={(e) => setNewNote(e.target.value)}
-                        placeholder="Enter your note about this user..."
-                        className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                        rows={3}
-                        disabled={addingNote}
-                      />
-                      <div className="flex justify-end">
-                        <Button 
-                          onClick={handleAddNote}
-                          disabled={!newNote.trim() || addingNote}
-                          className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800"
-                        >
-                          {addingNote ? 'Adding...' : 'Add Note'}
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Existing Notes */}
-                <div className="space-y-4">
-                  <h4 className="font-semibold text-lg">Existing Notes</h4>
-                  {notesLoading ? (
-                    <div className="text-center py-8">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                      <p className="text-gray-500 mt-2">Loading notes...</p>
-                    </div>
-                  ) : notes.length === 0 ? (
-                    <div className="text-center py-8">
-                      <StickyNote className="w-12 h-12 mx-auto text-gray-400 mb-4" />
-                      <p className="text-gray-500">No notes yet</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {notes.map((note) => (
-                        <div key={note.id} className="bg-slate-50/50 rounded-lg border border-slate-200 p-4">
-                          {editingNoteId === note.id ? (
-                            <div className="space-y-3">
-                              <textarea
-                                value={editingNoteText}
-                                onChange={(e) => setEditingNoteText(e.target.value)}
-                                className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                                rows={3}
-                              />
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2 text-xs text-gray-500">
-                                  <span>By: {note.admin.name}</span>
-                                  <span>•</span>
-                                  <span>{formatDate(note.createdAt)}</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <Button 
-                                    onClick={() => handleUpdateNote(note.id)}
-                                    disabled={!editingNoteText.trim()}
-                                    size="sm"
-                                    className="bg-green-600 hover:bg-green-700"
-                                  >
-                                    Save
-                                  </Button>
-                                  <Button 
-                                    onClick={cancelEditingNote}
-                                    variant="outline"
-                                    size="sm"
-                                  >
-                                    Cancel
-                                  </Button>
-                                </div>
-                              </div>
-                            </div>
-                          ) : (
-                            <div>
-                              <div className="flex items-start justify-between mb-2">
-                                <div className="flex-1">
-                                  <p className="text-gray-900 whitespace-pre-wrap">{note.note}</p>
-                                </div>
-                                <div className="flex items-center gap-1 ml-4">
-                                  <Button
-                                    onClick={() => startEditingNote(note)}
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                                  >
-                                    <Edit className="w-4 h-4" />
-                                  </Button>
-                                  <AlertDialog>
-                                    <AlertDialogTrigger asChild>
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
-                                      >
-                                        <Trash2 className="w-4 h-4" />
-                                      </Button>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent className="border-0 shadow-2xl">
-                                      <AlertDialogHeader>
-                                        <AlertDialogTitle>Delete Note</AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                          Are you sure you want to delete this note? This action cannot be undone.
-                                        </AlertDialogDescription>
-                                      </AlertDialogHeader>
-                                      <AlertDialogFooter>
-                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                        <AlertDialogAction
-                                          onClick={() => handleDeleteNote(note.id)}
-                                          className="bg-red-600 hover:bg-red-700"
-                                        >
-                                          Delete
-                                        </AlertDialogAction>
-                                      </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                  </AlertDialog>
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-2 text-xs text-gray-500">
-                                <span>By: {note.admin.name}</span>
-                                <span>•</span>
-                                <span>{formatDate(note.createdAt)}</span>
-                                {note.updatedAt !== note.createdAt && (
-                                  <>
-                                    <span>•</span>
-                                    <span>Edited {formatDate(note.updatedAt)}</span>
-                                  </>
-                                )}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+            <UserNotes
+              notes={notes}
+              newNote={newNote}
+              setNewNote={setNewNote}
+              editingNote={editingNoteId ? notes.find(n => n.id === editingNoteId) || null : null}
+              setEditingNote={(note) => setEditingNoteId(note?.id || null)}
+              editingNoteText={editingNoteText}
+              setEditingNoteText={setEditingNoteText}
+              handleAddNote={handleAddNote}
+              handleUpdateNote={handleUpdateNote}
+              handleDeleteNote={handleDeleteNote}
+              startEditingNote={startEditingNote}
+              cancelEditingNote={cancelEditingNote}
+              formatDate={formatDate}
+            />
           </TabsContent>
         </Tabs>
       </main>
