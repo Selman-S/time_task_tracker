@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Search, Edit, Trash2, Eye, User, Settings } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, User, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -26,15 +26,14 @@ export default function UsersPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
-  // State for QuickUserForm popup
-  const [showUserForm, setShowUserForm] = useState(false); // Controls user creation popup
+  // Modal state
+  const [showUserForm, setShowUserForm] = useState(false);
+  const [editUser, setEditUser] = useState<UserData | null>(null);
 
-  // Fetch users on component mount
   useEffect(() => {
     fetchUsers();
   }, []);
 
-  // Fetch all users
   const fetchUsers = async () => {
     try {
       setLoading(true);
@@ -44,17 +43,10 @@ export default function UsersPage() {
           'Authorization': `Bearer ${token}`
         }
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch users');
-      }
-
+      if (!response.ok) throw new Error('Failed to fetch users');
       const data = await response.json();
-      if (data.success) {
-        setUsers(data.data.users);
-      } else {
-        setError(data.error || 'Failed to fetch users');
-      }
+      if (data.success) setUsers(data.data.users);
+      else setError(data.error || 'Failed to fetch users');
     } catch (error) {
       setError('Failed to fetch users');
     } finally {
@@ -62,9 +54,10 @@ export default function UsersPage() {
     }
   };
 
-  // Navigate to user detail page
-  const handleManagePermissions = (userId: string) => {
-    router.push(`/admin/users/${userId}`);
+  // Open modal for add or edit
+  const handleOpenUserForm = (user?: UserData) => {
+    setEditUser(user || null);
+    setShowUserForm(true);
   };
 
   // Delete user
@@ -73,39 +66,29 @@ export default function UsersPage() {
       const token = localStorage.getItem('token');
       const response = await fetch(`http://localhost:5000/api/admin/users/${user.id}`, {
         method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        headers: { 'Authorization': `Bearer ${token}` }
       });
-
       const data = await response.json();
       if (data.success) {
-        toast({
-          title: 'Success',
-          description: 'User deleted successfully',
-        });
-        fetchUsers(); // Refresh the list
+        toast({ title: 'Success', description: 'User deleted successfully' });
+        fetchUsers();
       } else {
-        toast({
-          title: 'Error',
-          description: data.error || 'Failed to delete user',
-        });
+        toast({ title: 'Error', description: data.error || 'Failed to delete user' });
       }
     } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'Failed to delete user',
-      });
+      toast({ title: 'Error', description: 'Failed to delete user' });
     }
   };
 
-  // Add new user to the list (called after successful creation)
-  const handleUserCreated = (newUser: UserData) => {
-    setUsers(prev => [newUser, ...prev]);
-    toast({
-      title: 'Success',
-      description: 'User created successfully',
-    });
+  // Add or update user in the list
+  const handleUserSaved = (user: UserData, isEdit: boolean) => {
+    if (isEdit) {
+      setUsers(prev => prev.map(u => u.id === user.id ? user : u));
+      toast({ title: 'Success', description: 'User updated successfully' });
+    } else {
+      setUsers(prev => [user, ...prev]);
+      toast({ title: 'Success', description: 'User created successfully' });
+    }
   };
 
   // Get role badge variant
@@ -120,19 +103,16 @@ export default function UsersPage() {
     }
   };
 
-  // Filter users based on search term
+  // Filter users
   const filteredUsers = users.filter(user =>
     user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.role.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Format date helper
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
+      year: 'numeric', month: 'short', day: 'numeric',
     });
   };
 
@@ -140,42 +120,30 @@ export default function UsersPage() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
       <main className="container mx-auto px-4 py-8">
         {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                User Management 👫
-              </h1>
-              <p className="text-gray-600">
-                Manage users and their permissions for your organization.
-              </p>
-            </div>
-            {/* New User button opens popup */}
-            <Button
-              onClick={() => setShowUserForm(true)}
-              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg"
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              New User
-            </Button>
+        <div className="mb-8 flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">User Management 👫</h1>
+            <p className="text-gray-600">Manage users, roles, and permissions for your organization.</p>
           </div>
+          <Button
+            onClick={() => handleOpenUserForm()}
+            className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg"
+          >
+            <Plus className="mr-2 h-4 w-4" /> New User
+          </Button>
         </div>
-        {/* QuickUserForm Popup */}
+        {/* User Form Modal (Add/Edit) */}
         <QuickUserForm
           open={showUserForm}
           onOpenChange={setShowUserForm}
-          onUserCreated={handleUserCreated}
+          onUserCreated={(user) => handleUserSaved(user, !!editUser)}
+          editUser={editUser}
         />
-
-        {/* Search Card */}
+        {/* Search Bar */}
         <Card className="border-0 shadow-2xl bg-white/80 backdrop-blur-sm mb-8">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <div className="text-sm text-muted-foreground">
-                  {filteredUsers.length} of {users.length} users
-                </div>
-              </div>
+              <div className="text-sm text-muted-foreground">{filteredUsers.length} of {users.length} users</div>
               <div className="relative w-80">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                 <Input
@@ -188,7 +156,6 @@ export default function UsersPage() {
             </div>
           </CardContent>
         </Card>
-
         {/* Users List */}
         <div className="space-y-4">
           {loading ? (
@@ -222,11 +189,10 @@ export default function UsersPage() {
                   </p>
                   {!searchTerm && (
                     <Button 
-                      onClick={() => router.push('/admin/users/new')}
+                      onClick={() => handleOpenUserForm()}
                       className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg"
                     >
-                      <Plus className="mr-2 h-4 w-4" />
-                      Create User
+                      <Plus className="mr-2 h-4 w-4" /> Create User
                     </Button>
                   )}
                 </div>
@@ -246,9 +212,7 @@ export default function UsersPage() {
                         </Avatar>
                         <div className="flex-1">
                           <CardTitle className="text-lg text-gray-900">{user.name}</CardTitle>
-                          <CardDescription className="text-gray-600">
-                            {user.email}
-                          </CardDescription>
+                          <CardDescription className="text-gray-600">{user.email}</CardDescription>
                         </div>
                       </div>
                       <Badge variant={getRoleBadgeVariant(user.role)} className="shrink-0">
@@ -266,20 +230,18 @@ export default function UsersPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleManagePermissions(user.id)}
+                          onClick={() => router.push(`/admin/users/${user.id}`)}
                           className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
                         >
-                          <Settings className="h-4 w-4 mr-1" />
-                          Permissions
+                          <Settings className="h-4 w-4 mr-1" /> Permissions
                         </Button>
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => router.push(`/admin/users/${user.id}`)}
+                          onClick={() => handleOpenUserForm(user)}
                           className="text-green-600 hover:text-green-700 hover:bg-green-50"
                         >
-                          <Edit className="h-4 w-4 mr-1" />
-                          Edit
+                          <Edit className="h-4 w-4 mr-1" /> Edit
                         </Button>
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
@@ -288,8 +250,7 @@ export default function UsersPage() {
                               size="sm"
                               className="text-red-600 hover:text-red-700 hover:bg-red-50"
                             >
-                              <Trash2 className="h-4 w-4 mr-1" />
-                              Delete
+                              <Trash2 className="h-4 w-4 mr-1" /> Delete
                             </Button>
                           </AlertDialogTrigger>
                           <AlertDialogContent className="border-0 shadow-2xl">
@@ -318,7 +279,6 @@ export default function UsersPage() {
             </div>
           )}
         </div>
-
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mt-6 flex items-center space-x-2">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

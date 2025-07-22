@@ -269,6 +269,53 @@ export default function UserDetailPage() {
     }
   };
 
+  // Add handler for updating brand permission level
+  const handleUpdateBrandPermissionLevel = async (brandId: string, newLevel: string) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:5000/api/brands/${brandId}/permissions/${userId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ permissionLevel: newLevel.toUpperCase() })
+      });
+      const data = await response.json();
+      if (data.success) {
+        toast({ title: 'Success', description: 'Permission level updated' });
+        fetchUserDetails();
+      } else {
+        toast({ title: 'Error', description: data.error || 'Failed to update permission' });
+      }
+    } catch (err) {
+      toast({ title: 'Error', description: 'Failed to update permission' });
+    }
+  };
+  // Add handler for updating project permission level
+  const handleUpdateProjectPermissionLevel = async (projectId: string, newLevel: string) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:5000/api/projects/${projectId}/permissions/${userId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ permissionLevel: newLevel.toUpperCase() })
+      });
+      const data = await response.json();
+      if (data.success) {
+        toast({ title: 'Success', description: 'Permission level updated' });
+        fetchUserDetails();
+      } else {
+        toast({ title: 'Error', description: data.error || 'Failed to update permission' });
+      }
+    } catch (err) {
+      toast({ title: 'Error', description: 'Failed to update permission' });
+    }
+  };
+
   // Format date helper
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -437,7 +484,9 @@ export default function UserDetailPage() {
                           </TooltipTrigger>
                           <TooltipContent sideOffset={8}>
                             <div className="text-xs whitespace-pre-line">
-                              READ: View only access.\nWRITE: Create and edit access.\nADMIN: Full management access (add/remove users, change permissions).
+                              READ: View only access.<br></br>
+                              WRITE: Create and edit access.<br></br>
+                              ADMIN: Full management access (add/remove users, change permissions).
                             </div>
                           </TooltipContent>
                         </Tooltip>
@@ -475,9 +524,16 @@ export default function UserDetailPage() {
                                 )}
                               </div>
                               <div className="flex items-center gap-3">
-                                <Badge variant={getPermissionBadgeVariant(perm.permissionLevel)}>
-                                  {perm.permissionLevel}
-                                </Badge>
+                                <Select value={perm.permissionLevel.toLowerCase()} onValueChange={level => handleUpdateBrandPermissionLevel(perm.brand.id, level)}>
+                                  <SelectTrigger className="w-28">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="read">Read</SelectItem>
+                                    <SelectItem value="write">Write</SelectItem>
+                                    <SelectItem value="admin">Admin</SelectItem>
+                                  </SelectContent>
+                                </Select>
                                 <AlertDialog>
                                   <AlertDialogTrigger asChild>
                                     <Button
@@ -578,7 +634,9 @@ export default function UserDetailPage() {
                           </TooltipTrigger>
                           <TooltipContent sideOffset={8}>
                             <div className="text-xs whitespace-pre-line">
-                              READ: View only access.\nWRITE: Create and edit access.\nADMIN: Full management access (add/remove users, change permissions).
+                              READ: View only access.<br></br>
+                              WRITE: Create and edit access.<br></br>
+                              ADMIN: Full management access (add/remove users, change permissions).
                             </div>
                           </TooltipContent>
                         </Tooltip>
@@ -611,17 +669,22 @@ export default function UserDetailPage() {
                             <div className="flex items-center justify-between">
                               <div className="flex-1">
                                 <h5 className="font-medium text-gray-900">{perm.project.name}</h5>
-                                <p className="text-sm text-gray-500 mt-1">
-                                  Brand: {perm.project.brand.name}
-                                </p>
+                                <p className="text-sm text-gray-500 mt-1">Brand: {perm.project.brand.name}</p>
                                 {perm.project.description && (
                                   <p className="text-xs text-gray-400 mt-1">{perm.project.description}</p>
                                 )}
                               </div>
                               <div className="flex items-center gap-3">
-                                <Badge variant={getPermissionBadgeVariant(perm.permissionLevel)}>
-                                  {perm.permissionLevel}
-                                </Badge>
+                                <Select value={perm.permissionLevel.toLowerCase()} onValueChange={level => handleUpdateProjectPermissionLevel(perm.project.id, level)}>
+                                  <SelectTrigger className="w-28">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="read">Read</SelectItem>
+                                    <SelectItem value="write">Write</SelectItem>
+                                    <SelectItem value="admin">Admin</SelectItem>
+                                  </SelectContent>
+                                </Select>
                                 <AlertDialog>
                                   <AlertDialogTrigger asChild>
                                     <Button
