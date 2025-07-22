@@ -19,7 +19,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { toast } from 'sonner';
-import { Toaster } from "@/components/ui/toaster"
+import { Toaster } from "@/components/ui/toaster";
+import ClientErrorBoundary from '@/components/ui/client-error-boundary';
 
 interface User {
   id: string;
@@ -255,7 +256,9 @@ export default function DashboardLayout({
 
         {/* Page Content */}
         <main className="p-6">
-          {children}
+          <ClientErrorBoundary>
+            {children}
+          </ClientErrorBoundary>
         </main>
       </div>
       {/* Popup Components */}

@@ -13,6 +13,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { toast } from '@/hooks/use-toast';
 import QuickUserForm from '@/components/forms/QuickUserForm';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { UserListSkeleton } from '@/components/ui/skeleton-loaders';
 
 interface UserData {
   id: string;
@@ -85,18 +87,36 @@ export default function UsersPage() {
   const fetchUsers = async () => {
     try {
       setLoading(true);
+      setError('');
       const token = localStorage.getItem('token');
       const response = await fetch('http://localhost:5000/api/admin/users', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
-      if (!response.ok) throw new Error('Failed to fetch users');
+      
+      if (!response.ok) {
+        if (response.status === 401) {
+          setError('Authentication failed. Please login again.');
+          router.push('/login');
+          return;
+        }
+        if (response.status === 403) {
+          setError('Access denied. You don\'t have permission to view users.');
+          return;
+        }
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
       const data = await response.json();
-      if (data.success) setUsers(data.data.users);
-      else setError(data.error || 'Failed to fetch users');
+      if (data.success) {
+        setUsers(data.data.users);
+      } else {
+        setError(data.error || 'Failed to fetch users');
+      }
     } catch (error) {
-      setError('Failed to fetch users');
+      console.error('Error fetching users:', error);
+      setError(error instanceof Error ? error.message : 'Failed to fetch users');
     } finally {
       setLoading(false);
     }
@@ -112,11 +132,14 @@ export default function UsersPage() {
   const handleDeleteUser = async (user: UserData) => {
     try {
       const token = localStorage.getItem('token');
+      
       const response = await fetch(`http://localhost:5000/api/admin/users/${user.id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
+      
       const data = await response.json();
+      
       if (data.success) {
         toast({ title: 'Success', description: 'User deleted successfully' });
         fetchUsers();
@@ -124,6 +147,7 @@ export default function UsersPage() {
         toast({ title: 'Error', description: data.error || 'Failed to delete user' });
       }
     } catch (error) {
+      console.error('Delete user error:', error);
       toast({ title: 'Error', description: 'Failed to delete user' });
     }
   };
@@ -539,49 +563,31 @@ export default function UsersPage() {
         {/* Users List */}
         <div className="space-y-4">
           {loading ? (
-            <div className="space-y-3 sm:grid sm:grid-cols-2 lg:grid-cols-3 sm:gap-4 sm:space-y-0">
-              {[...Array(6)].map((_, i) => (
-                <Card key={i} className="border-0 shadow-lg bg-white/80 backdrop-blur-sm animate-pulse">
-                  {/* Mobile: List View */}
-                  <div className="sm:hidden">
-                    <CardHeader className="pb-2">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 bg-muted rounded-full flex-shrink-0"></div>
-                        <div className="flex-1 min-w-0">
-                          <div className="h-4 bg-muted rounded w-3/4 mb-1"></div>
-                          <div className="h-3 bg-muted rounded w-1/2 mb-1"></div>
-                          <div className="h-3 bg-muted rounded w-2/3"></div>
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="pt-0">
-                      <div className="flex gap-2">
-                        <div className="flex-1 h-8 bg-muted rounded"></div>
-                        <div className="flex-1 h-8 bg-muted rounded"></div>
-                        <div className="flex-1 h-8 bg-muted rounded"></div>
-                      </div>
-                    </CardContent>
+            <UserListSkeleton />
+          ) : error ? (
+            <Card className="border-0 shadow-2xl bg-white/80 backdrop-blur-sm">
+              <CardContent className="pt-6">
+                <div className="text-center">
+                  <div className="mx-auto h-12 w-12 text-red-500 mb-4">
+                    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                    </svg>
                   </div>
-
-                  {/* Desktop: Card View */}
-                  <div className="hidden sm:block">
-                  <CardHeader>
-                    <div className="flex items-center space-x-4">
-                        <div className="w-12 h-12 bg-muted rounded-full flex-shrink-0"></div>
-                        <div className="flex-1 min-w-0">
-                        <div className="h-4 bg-muted rounded w-3/4 mb-2"></div>
-                        <div className="h-3 bg-muted rounded w-1/2"></div>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="h-3 bg-muted rounded w-full mb-2"></div>
-                    <div className="h-3 bg-muted rounded w-2/3"></div>
-                  </CardContent>
-                  </div>
-                </Card>
-              ))}
-            </div>
+                  <h3 className="text-lg font-semibold mb-2 text-red-600">Error Loading Users</h3>
+                  <p className="text-muted-foreground mb-4">{error}</p>
+                  <Button 
+                    onClick={fetchUsers}
+                    variant="outline"
+                    className="mr-2"
+                  >
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    Retry
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           ) : filteredUsers.length === 0 ? (
             <Card className="border-0 shadow-2xl bg-white/80 backdrop-blur-sm">
               <CardContent className="pt-6">
@@ -708,7 +714,7 @@ export default function UsersPage() {
                             <AlertDialogHeader>
                               <AlertDialogTitle>Delete User</AlertDialogTitle>
                               <AlertDialogDescription>
-                                Are you sure you want to delete {user.name}? This action cannot be undone.
+                                Are you sure you want to delete <strong>{user.name}</strong>? This action cannot be undone.
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
@@ -808,33 +814,21 @@ export default function UsersPage() {
                         </TooltipProvider>
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
                             <Button
-                                    variant="outline"
+                              variant="outline"
                               size="sm"
-                                    className="flex-1 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
-                                    aria-label={`Delete user ${user.name}`}
+                              className="flex-1 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                              aria-label={`Delete user ${user.name}`}
                             >
-                                    <Trash2 className="mr-2 h-4 w-4" />
+                              <Trash2 className="mr-2 h-4 w-4" />
                               Delete
                             </Button>
-                                </TooltipTrigger>
-                                <TooltipContent side="top">
-                                  <div className="space-y-1">
-                                    <p className="font-semibold">Delete User</p>
-                                    <p className="text-sm">Permanently remove user from system</p>
-                                  </div>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
                           </AlertDialogTrigger>
                           <AlertDialogContent className="border-0 shadow-2xl">
                             <AlertDialogHeader>
                               <AlertDialogTitle>Delete User</AlertDialogTitle>
                               <AlertDialogDescription>
-                                Are you sure you want to delete {user.name}? This action cannot be undone.
+                                Are you sure you want to delete <strong>{user.name}</strong>? This action cannot be undone.
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>

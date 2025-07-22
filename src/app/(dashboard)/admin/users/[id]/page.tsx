@@ -18,6 +18,9 @@ import Permissions from '@/components/users/Permissions';
 import UserActivities from '@/components/users/UserActivities';
 import UserNotes from '@/components/users/UserNotes';
 import { User as UserType, BrandPermission, ProjectPermission, Brand, Project, UserNote, Activity, UserDetails } from '@/types/user';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { CardSkeleton } from '@/components/ui/skeleton-loaders';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function UserDetailPage() {
   const params = useParams();
@@ -70,23 +73,41 @@ export default function UserDetailPage() {
     try {
       setLoading(true);
       setError('');
+      const token = localStorage.getItem('token');
       const response = await fetch(`http://localhost:5000/api/admin/users/${userId}`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
         }
       });
       
-      if (response.ok) {
-        const data = await response.json();
+      if (!response.ok) {
+        if (response.status === 401) {
+          setError('Authentication failed. Please login again.');
+          router.push('/login');
+          return;
+        }
+        if (response.status === 403) {
+          setError('Access denied. You don\'t have permission to view this user.');
+          return;
+        }
+        if (response.status === 404) {
+          setError('User not found. The user may have been deleted or you may not have permission to view them.');
+          return;
+        }
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      
+      if (data.success) {
         setUserDetails(data.data);
-      } else if (response.status === 404) {
-        setError('User not found');
       } else {
-        setError('Failed to load user details');
+        throw new Error(data.error || 'Failed to fetch user details');
       }
     } catch (error) {
       console.error('Error fetching user details:', error);
-      setError('Failed to load user details');
+      setError(error instanceof Error ? error.message : 'Failed to load user details');
     } finally {
       setLoading(false);
     }
@@ -324,12 +345,12 @@ export default function UserDetailPage() {
 
   // Helper: Check if user has brand permission
   const userHasBrandPermission = (brandId: string) => {
-    return brandPermissions.some(perm => perm.brand.id === brandId);
+    return brandPermissions.some(perm => perm && perm.brand && perm.brand.id === brandId);
   };
 
   // Helper: Check if user has project permission
   const userHasProjectPermission = (projectId: string) => {
-    return projectPermissions.some(perm => perm.project.id === projectId);
+    return projectPermissions.some(perm => perm && perm.project && perm.project.id === projectId);
   };
 
   // Add brand permission
@@ -671,10 +692,27 @@ export default function UserDetailPage() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
         <main className="container mx-auto px-4 py-8">
-          <div className="flex items-center justify-center h-64">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-              <p className="text-gray-600">Loading user details...</p>
+          <div className="space-y-6">
+            {/* Header Skeleton */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <Skeleton className="h-10 w-10 rounded-full" />
+                <div className="space-y-2">
+                  <Skeleton className="h-6 w-48" />
+                  <Skeleton className="h-4 w-32" />
+                </div>
+              </div>
+              <Skeleton className="h-10 w-24" />
+            </div>
+            
+            {/* Tabs Skeleton */}
+            <Skeleton className="h-12 w-full" />
+            
+            {/* Content Skeleton */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <CardSkeleton />
+              <CardSkeleton />
+              <CardSkeleton />
             </div>
           </div>
         </main>
@@ -687,13 +725,44 @@ export default function UserDetailPage() {
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
         <main className="container mx-auto px-4 py-8">
           <div className="flex items-center justify-center h-64">
-            <div className="text-center">
-              <div className="text-lg text-red-600 mb-4">{error || 'User not found'}</div>
-              <Button onClick={() => router.push('/admin/users')} variant="outline">
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Users
-              </Button>
-            </div>
+            <Card className="border-0 shadow-2xl bg-white/80 backdrop-blur-sm">
+              <CardContent className="pt-6">
+                <div className="text-center">
+                  <div className="mx-auto h-12 w-12 text-red-500 mb-4">
+                    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-semibold mb-2 text-red-600">
+                    {error ? 'Error Loading User' : 'User Not Found'}
+                  </h3>
+                  <p className="text-muted-foreground mb-4">
+                    {error || 'The user you\'re looking for doesn\'t exist or has been removed.'}
+                  </p>
+                  <div className="space-x-2">
+                    {error && (
+                      <Button 
+                        onClick={() => {
+                          setError('');
+                          fetchUserDetails();
+                        }}
+                        variant="outline"
+                        className="mr-2"
+                      >
+                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        Retry
+                      </Button>
+                    )}
+                    <Button onClick={() => router.push('/admin/users')} variant="outline">
+                      <ArrowLeft className="w-4 h-4 mr-2" />
+                      Back to Users
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </main>
       </div>
