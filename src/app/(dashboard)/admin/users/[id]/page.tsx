@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Building2, FolderOpen, ShieldCheck, Trash2, Plus, User, Calendar, Users, Info } from 'lucide-react';
+import { ArrowLeft, Building2, FolderOpen, ShieldCheck, Trash2, Plus, User, Calendar, Users, Info, Clock, CheckCircle, PlusCircle, StickyNote, Edit, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -63,6 +63,27 @@ interface Project {
   };
 }
 
+interface UserNote {
+  id: string;
+  note: string;
+  createdAt: string;
+  updatedAt: string;
+  admin: {
+    id: string;
+    name: string;
+    email: string;
+  };
+}
+
+interface Activity {
+  id: string;
+  type: 'time_entry' | 'task_assigned' | 'task_created';
+  title: string;
+  description: string;
+  timestamp: string;
+  data: any;
+}
+
 interface UserDetails {
   user: User;
   brandPermissions: BrandPermission[];
@@ -81,6 +102,18 @@ export default function UserDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  // Activities state
+  const [activities, setActivities] = useState<Activity[]>([]);
+  const [activitiesLoading, setActivitiesLoading] = useState(false);
+
+  // Notes state
+  const [notes, setNotes] = useState<UserNote[]>([]);
+  const [notesLoading, setNotesLoading] = useState(false);
+  const [newNote, setNewNote] = useState('');
+  const [addingNote, setAddingNote] = useState(false);
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [editingNoteText, setEditingNoteText] = useState('');
+
   // Add brand permission state
   const [selectedBrandId, setSelectedBrandId] = useState('');
   const [selectedBrandPermissionLevel, setSelectedBrandPermissionLevel] = useState('');
@@ -94,6 +127,8 @@ export default function UserDetailPage() {
   // Fetch user details on component mount
   useEffect(() => {
     fetchUserDetails();
+    fetchUserActivities();
+    fetchUserNotes(); // Fetch notes on mount
   }, [userId]);
 
   // Fetch complete user details with single API call
@@ -117,6 +152,184 @@ export default function UserDetailPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Fetch user activities
+  const fetchUserActivities = async () => {
+    try {
+      setActivitiesLoading(true);
+      const response = await fetch(`http://localhost:5000/api/admin/users/${userId}/activities`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setActivities(data.data.activities);
+      } else {
+        console.error('Failed to fetch activities');
+      }
+    } catch (error) {
+      console.error('Error fetching activities:', error);
+    } finally {
+      setActivitiesLoading(false);
+    }
+  };
+
+  // Fetch user notes
+  const fetchUserNotes = async () => {
+    try {
+      setNotesLoading(true);
+      const response = await fetch(`http://localhost:5000/api/admin/users/${userId}/notes`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setNotes(data.data.notes);
+      } else {
+        console.error('Failed to fetch notes');
+      }
+    } catch (error) {
+      console.error('Error fetching notes:', error);
+    } finally {
+      setNotesLoading(false);
+    }
+  };
+
+  // Add new note
+  const handleAddNote = async () => {
+    if (!newNote.trim()) return;
+    
+    try {
+      setAddingNote(true);
+      const response = await fetch(`http://localhost:5000/api/admin/users/${userId}/notes`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ note: newNote })
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setNotes([data.data.note, ...notes]);
+        setNewNote('');
+        toast({
+          title: "Success",
+          description: "Note added successfully",
+        });
+      } else {
+        const errorData = await response.json();
+        toast({
+          title: "Error",
+          description: errorData.error || "Failed to add note",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error adding note:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add note",
+        variant: "destructive",
+      });
+    } finally {
+      setAddingNote(false);
+    }
+  };
+
+  // Update note
+  const handleUpdateNote = async (noteId: string) => {
+    if (!editingNoteText.trim()) return;
+    
+    try {
+      const response = await fetch(`http://localhost:5000/api/admin/notes/${noteId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ note: editingNoteText })
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setNotes(notes.map(note => 
+          note.id === noteId ? data.data.note : note
+        ));
+        setEditingNoteId(null);
+        setEditingNoteText('');
+        toast({
+          title: "Success",
+          description: "Note updated successfully",
+        });
+      } else {
+        const errorData = await response.json();
+        toast({
+          title: "Error",
+          description: errorData.error || "Failed to update note",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error updating note:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update note",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Delete note
+  const handleDeleteNote = async (noteId: string) => {
+    try {
+      const response = await fetch(`http://localhost:5000/api/admin/notes/${noteId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      
+      if (response.ok) {
+        setNotes(notes.filter(note => note.id !== noteId));
+        toast({
+          title: "Success",
+          description: "Note deleted successfully",
+        });
+      } else {
+        const errorData = await response.json();
+        toast({
+          title: "Error",
+          description: errorData.error || "Failed to delete note",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error deleting note:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete note",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Start editing note
+  const startEditingNote = (note: UserNote) => {
+    setEditingNoteId(note.id);
+    setEditingNoteText(note.note);
+  };
+
+  // Cancel editing note
+  const cancelEditingNote = () => {
+    setEditingNoteId(null);
+    setEditingNoteText('');
   };
 
   // Helper: Get permission badge variant
@@ -325,6 +538,32 @@ export default function UserDetailPage() {
     });
   };
 
+  const getActivityIcon = (type: string) => {
+    switch (type) {
+      case 'time_entry':
+        return <Clock className="w-4 h-4 text-blue-500" />;
+      case 'task_assigned':
+        return <CheckCircle className="w-4 h-4 text-green-500" />;
+      case 'task_created':
+        return <PlusCircle className="w-4 h-4 text-purple-500" />;
+      default:
+        return <Calendar className="w-4 h-4 text-gray-500" />;
+    }
+  };
+
+  const getActivityBadgeVariant = (type: string) => {
+    switch (type) {
+      case 'time_entry':
+        return 'default';
+      case 'task_assigned':
+        return 'secondary';
+      case 'task_created':
+        return 'outline';
+      default:
+        return 'default';
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
@@ -421,6 +660,14 @@ export default function UserDetailPage() {
             <TabsTrigger value="projects" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">
               <FolderOpen className="w-4 h-4 mr-2" />
               Project Permissions
+            </TabsTrigger>
+            <TabsTrigger value="activities" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">
+              <Clock className="w-4 h-4 mr-2" />
+              Activities
+            </TabsTrigger>
+            <TabsTrigger value="notes" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">
+              <StickyNote className="w-4 h-4 mr-2" />
+              Notes
             </TabsTrigger>
           </TabsList>
 
@@ -714,6 +961,250 @@ export default function UserDetailPage() {
                           </div>
                         ))}
                       </div>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Activities Tab */}
+          <TabsContent value="activities">
+            <Card className="border-0 shadow-2xl bg-white/80 backdrop-blur-sm">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <Clock className="w-5 h-5 text-blue-600" />
+                      Recent Activities
+                    </CardTitle>
+                    <CardDescription>
+                      View user's recent activities and work history
+                    </CardDescription>
+                  </div>
+                  <Button 
+                    onClick={fetchUserActivities}
+                    disabled={activitiesLoading}
+                    variant="outline"
+                    size="sm"
+                  >
+                    {activitiesLoading ? 'Loading...' : 'Refresh'}
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {activitiesLoading ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                    <p className="text-gray-500 mt-2">Loading activities...</p>
+                  </div>
+                ) : activities.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Clock className="w-12 h-12 mx-auto text-gray-400 mb-4" />
+                    <p className="text-gray-500">No recent activities found</p>
+                    <Button 
+                      onClick={fetchUserActivities}
+                      variant="outline"
+                      size="sm"
+                      className="mt-2"
+                    >
+                      Load Activities
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {activities.map((activity) => (
+                      <div key={activity.id} className="flex items-start gap-4 p-4 bg-slate-50/50 rounded-lg border border-slate-200 hover:bg-slate-100/50 transition-all">
+                        <div className="flex-shrink-0 mt-1">
+                          {getActivityIcon(activity.type)}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h4 className="font-medium text-gray-900">{activity.title}</h4>
+                            <Badge variant={getActivityBadgeVariant(activity.type)} className="text-xs">
+                              {activity.type.replace('_', ' ')}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-gray-600 mb-2">{activity.description}</p>
+                          <div className="flex items-center text-xs text-gray-500">
+                            <Calendar className="w-3 h-3 mr-1" />
+                            {formatDate(activity.timestamp)}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Notes Tab */}
+          <TabsContent value="notes">
+            <Card className="border-0 shadow-2xl bg-white/80 backdrop-blur-sm">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <StickyNote className="w-5 h-5 text-blue-600" />
+                      Admin Notes
+                    </CardTitle>
+                    <CardDescription>
+                      Add and manage notes about this user
+                    </CardDescription>
+                  </div>
+                  <Button 
+                    onClick={fetchUserNotes}
+                    disabled={notesLoading}
+                    variant="outline"
+                    size="sm"
+                  >
+                    {notesLoading ? 'Loading...' : 'Refresh'}
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Add New Note Form */}
+                <Card className="bg-slate-50/50 border border-slate-200">
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Plus className="w-5 h-5 text-green-600" />
+                      Add New Note
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <textarea
+                        value={newNote}
+                        onChange={(e) => setNewNote(e.target.value)}
+                        placeholder="Enter your note about this user..."
+                        className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                        rows={3}
+                        disabled={addingNote}
+                      />
+                      <div className="flex justify-end">
+                        <Button 
+                          onClick={handleAddNote}
+                          disabled={!newNote.trim() || addingNote}
+                          className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800"
+                        >
+                          {addingNote ? 'Adding...' : 'Add Note'}
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Existing Notes */}
+                <div className="space-y-4">
+                  <h4 className="font-semibold text-lg">Existing Notes</h4>
+                  {notesLoading ? (
+                    <div className="text-center py-8">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                      <p className="text-gray-500 mt-2">Loading notes...</p>
+                    </div>
+                  ) : notes.length === 0 ? (
+                    <div className="text-center py-8">
+                      <StickyNote className="w-12 h-12 mx-auto text-gray-400 mb-4" />
+                      <p className="text-gray-500">No notes yet</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {notes.map((note) => (
+                        <div key={note.id} className="bg-slate-50/50 rounded-lg border border-slate-200 p-4">
+                          {editingNoteId === note.id ? (
+                            <div className="space-y-3">
+                              <textarea
+                                value={editingNoteText}
+                                onChange={(e) => setEditingNoteText(e.target.value)}
+                                className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                                rows={3}
+                              />
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2 text-xs text-gray-500">
+                                  <span>By: {note.admin.name}</span>
+                                  <span>•</span>
+                                  <span>{formatDate(note.createdAt)}</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <Button 
+                                    onClick={() => handleUpdateNote(note.id)}
+                                    disabled={!editingNoteText.trim()}
+                                    size="sm"
+                                    className="bg-green-600 hover:bg-green-700"
+                                  >
+                                    Save
+                                  </Button>
+                                  <Button 
+                                    onClick={cancelEditingNote}
+                                    variant="outline"
+                                    size="sm"
+                                  >
+                                    Cancel
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          ) : (
+                            <div>
+                              <div className="flex items-start justify-between mb-2">
+                                <div className="flex-1">
+                                  <p className="text-gray-900 whitespace-pre-wrap">{note.note}</p>
+                                </div>
+                                <div className="flex items-center gap-1 ml-4">
+                                  <Button
+                                    onClick={() => startEditingNote(note)}
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                  >
+                                    <Edit className="w-4 h-4" />
+                                  </Button>
+                                  <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                      >
+                                        <Trash2 className="w-4 h-4" />
+                                      </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent className="border-0 shadow-2xl">
+                                      <AlertDialogHeader>
+                                        <AlertDialogTitle>Delete Note</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                          Are you sure you want to delete this note? This action cannot be undone.
+                                        </AlertDialogDescription>
+                                      </AlertDialogHeader>
+                                      <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                        <AlertDialogAction
+                                          onClick={() => handleDeleteNote(note.id)}
+                                          className="bg-red-600 hover:bg-red-700"
+                                        >
+                                          Delete
+                                        </AlertDialogAction>
+                                      </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                  </AlertDialog>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2 text-xs text-gray-500">
+                                <span>By: {note.admin.name}</span>
+                                <span>•</span>
+                                <span>{formatDate(note.createdAt)}</span>
+                                {note.updatedAt !== note.createdAt && (
+                                  <>
+                                    <span>•</span>
+                                    <span>Edited {formatDate(note.updatedAt)}</span>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>

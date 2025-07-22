@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import React from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Switch } from '@/components/ui/switch';
 
 interface QuickUserFormProps {
   open: boolean;
@@ -31,6 +32,7 @@ export default function QuickUserForm({ open, onOpenChange, onUserCreated, editU
   const [role, setRole] = useState<string>('WORKER');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [inviteMode, setInviteMode] = useState(false);
   const { toast } = useToast();
 
   // Prefill form in edit mode
@@ -136,6 +138,10 @@ export default function QuickUserForm({ open, onOpenChange, onUserCreated, editU
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="flex items-center gap-2 pb-2">
+            <Switch checked={inviteMode} onCheckedChange={setInviteMode} id="inviteMode" />
+            <Label htmlFor="inviteMode" className="text-sm">Invite by Email (no password)</Label>
+          </div>
           <div className="space-y-2">
             <Label htmlFor="userName" className="text-sm font-medium">Full Name *</Label>
             <Input id="userName" value={name} onChange={(e) => setName(e.target.value)} placeholder="Enter full name" className="h-10" disabled={loading} />
@@ -144,29 +150,31 @@ export default function QuickUserForm({ open, onOpenChange, onUserCreated, editU
             <Label htmlFor="userEmail" className="text-sm font-medium">Email *</Label>
             <Input id="userEmail" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Enter email address" className="h-10" disabled={loading} />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="userPassword" className="text-sm font-medium">{editUser ? 'Password (leave blank to keep current)' : 'Password *'}</Label>
-            <div className="relative">
-              <Input
-                id="userPassword"
-                type={showPassword ? 'text' : 'password'}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder={editUser ? 'Leave blank to keep current password' : 'Enter password (min 6 characters)'}
-                className="h-10 pr-10"
-                disabled={loading}
-              />
-              <button
-                type="button"
-                tabIndex={-1}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700"
-                onClick={() => setShowPassword((v) => !v)}
-                aria-label={showPassword ? 'Hide password' : 'Show password'}
-              >
-                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-              </button>
+          {!inviteMode && (
+            <div className="space-y-2">
+              <Label htmlFor="userPassword" className="text-sm font-medium">{editUser ? 'Password (leave blank to keep current)' : 'Password *'}</Label>
+              <div className="relative">
+                <Input
+                  id="userPassword"
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder={editUser ? 'Leave blank to keep current password' : 'Enter password (min 6 characters)'}
+                  className="h-10 pr-10"
+                  disabled={loading}
+                />
+                <button
+                  type="button"
+                  tabIndex={-1}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700"
+                  onClick={() => setShowPassword((v) => !v)}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+              </div>
             </div>
-          </div>
+          )}
           <div className="space-y-2">
             <Label htmlFor="userRole" className="text-sm font-medium">Role *</Label>
             <Select value={role} onValueChange={setRole} disabled={loading}>
@@ -218,10 +226,56 @@ export default function QuickUserForm({ open, onOpenChange, onUserCreated, editU
             </Select>
           </div>
           <div className="flex space-x-2 pt-4">
-            <Button type="submit" disabled={loading || !name.trim() || !email.trim() || (!editUser && !password.trim())} className="flex-1 bg-blue-600 hover:bg-blue-700">
-              {loading ? (editUser ? 'Updating...' : 'Creating...') : (editUser ? 'Update User' : 'Create User')}
-            </Button>
-            <Button type="button" variant="outline" onClick={() => { resetForm(); onOpenChange(false); }} disabled={loading} className="flex-1">Cancel</Button>
+            {inviteMode ? (
+              <Button
+                type="button"
+                disabled={loading || !name.trim() || !email.trim()}
+                className="flex-1 bg-blue-600 hover:bg-blue-700"
+                onClick={async () => {
+                  setLoading(true);
+                  try {
+                    const token = localStorage.getItem('token');
+                    const response = await fetch('http://localhost:5000/api/admin/users/invite', {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                      },
+                      body: JSON.stringify({ name: name.trim(), email: email.trim().toLowerCase(), role })
+                    });
+                    const data = await response.json();
+                    if (response.ok && data.success) {
+                      toast({
+                        title: 'Invite Sent',
+                        description: `Invitation link sent to ${email}.`,
+                      });
+                      setName(''); setEmail(''); setRole('WORKER'); setInviteMode(false); onOpenChange(false);
+                    } else {
+                      toast({
+                        title: 'Error',
+                        description: data.error || 'Failed to send invite',
+                        variant: 'destructive',
+                      });
+                    }
+                  } catch (err) {
+                    toast({
+                      title: 'Error',
+                      description: 'Failed to send invite',
+                      variant: 'destructive',
+                    });
+                  } finally {
+                    setLoading(false);
+                  }
+                }}
+              >
+                Send Invite
+              </Button>
+            ) : (
+              <Button type="submit" disabled={loading || !name.trim() || !email.trim() || (!editUser && !password.trim())} className="flex-1 bg-blue-600 hover:bg-blue-700">
+                {loading ? (editUser ? 'Updating...' : 'Creating...') : (editUser ? 'Update User' : 'Create User')}
+              </Button>
+            )}
+            <Button type="button" variant="outline" onClick={() => { setName(''); setEmail(''); setPassword(''); setRole('WORKER'); setInviteMode(false); onOpenChange(false); }} disabled={loading} className="flex-1">Cancel</Button>
           </div>
         </form>
       </DialogContent>
