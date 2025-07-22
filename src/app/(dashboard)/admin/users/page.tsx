@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Search, Edit, Trash2, User, Settings, HelpCircle, Info, Shield, Users, Key } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, User, Settings, HelpCircle, Info, Shield, Users, Key, Clock, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -36,6 +36,16 @@ export default function UsersPage() {
   const [showUserForm, setShowUserForm] = useState(false);
   const [editUser, setEditUser] = useState<UserData | null>(null);
   const [roleFilter, setRoleFilter] = useState<string>('ALL');
+  // Advanced search state
+  const [searchHistory, setSearchHistory] = useState<string[]>([]);
+  const [showAdvancedSearch, setShowAdvancedSearch] = useState(false);
+  const [searchCriteria, setSearchCriteria] = useState({
+    name: '',
+    email: '',
+    role: 'ALL',
+    status: 'ALL',
+    lastLogin: 'ALL'
+  });
 
   useEffect(() => {
     fetchUsers();
@@ -141,18 +151,78 @@ export default function UsersPage() {
     }
   };
 
+  // Advanced search function
+  const performAdvancedSearch = (criteria: typeof searchCriteria) => {
+    return users.filter(user => {
+      const nameMatch = !criteria.name || user.name.toLowerCase().includes(criteria.name.toLowerCase());
+      const emailMatch = !criteria.email || user.email.toLowerCase().includes(criteria.email.toLowerCase());
+      const roleMatch = criteria.role === 'ALL' || user.role === criteria.role;
+      const statusMatch = criteria.status === 'ALL' || 
+        (criteria.status === 'ACTIVE' && user.isActive) ||
+        (criteria.status === 'INACTIVE' && !user.isActive);
+      const lastLoginMatch = criteria.lastLogin === 'ALL' || 
+        (criteria.lastLogin === 'RECENT' && user.lastLogin && new Date(user.lastLogin) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)) ||
+        (criteria.lastLogin === 'OLD' && (!user.lastLogin || new Date(user.lastLogin) < new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)));
+      
+      return nameMatch && emailMatch && roleMatch && statusMatch && lastLoginMatch;
+    });
+  };
+
   // Enhanced filter: search by name, email, role, isActive, brandCount, projectCount
-  const filteredUsers = users.filter(user => {
-    const q = searchTerm.toLowerCase();
-    const matches =
-      user.name.toLowerCase().includes(q) ||
-      user.email.toLowerCase().includes(q) ||
-      user.role.toLowerCase().includes(q) ||
-      (user.isActive ? 'active' : 'inactive').includes(q) ||
-      (user.brandCount !== undefined && user.brandCount.toString().includes(q)) ||
-      (user.projectCount !== undefined && user.projectCount.toString().includes(q));
-    return (roleFilter === 'ALL' || user.role === roleFilter) && matches;
-  });
+  const filteredUsers = showAdvancedSearch 
+    ? performAdvancedSearch(searchCriteria)
+    : users.filter(user => {
+        const q = searchTerm.toLowerCase();
+        const matches =
+          user.name.toLowerCase().includes(q) ||
+          user.email.toLowerCase().includes(q) ||
+          user.role.toLowerCase().includes(q) ||
+          (user.isActive ? 'active' : 'inactive').includes(q) ||
+          (user.brandCount !== undefined && user.brandCount.toString().includes(q)) ||
+          (user.projectCount !== undefined && user.projectCount.toString().includes(q));
+        return (roleFilter === 'ALL' || user.role === roleFilter) && matches;
+      });
+
+  // Add to search history
+  const addToSearchHistory = (search: string) => {
+    if (search.trim() && !searchHistory.includes(search.trim())) {
+      setSearchHistory(prev => [search.trim(), ...prev.slice(0, 4)]);
+    }
+  };
+
+  // Quick filter functions
+  const applyQuickFilter = (filter: string) => {
+    switch (filter) {
+      case 'active':
+        setSearchCriteria(prev => ({ ...prev, status: 'ACTIVE' }));
+        setShowAdvancedSearch(true);
+        break;
+      case 'inactive':
+        setSearchCriteria(prev => ({ ...prev, status: 'INACTIVE' }));
+        setShowAdvancedSearch(true);
+        break;
+      case 'recent':
+        setSearchCriteria(prev => ({ ...prev, lastLogin: 'RECENT' }));
+        setShowAdvancedSearch(true);
+        break;
+      case 'admins':
+        setSearchCriteria(prev => ({ ...prev, role: 'ADMIN' }));
+        setShowAdvancedSearch(true);
+        break;
+      case 'clear':
+        setSearchCriteria({
+          name: '',
+          email: '',
+          role: 'ALL',
+          status: 'ALL',
+          lastLogin: 'ALL'
+        });
+        setShowAdvancedSearch(false);
+        setSearchTerm('');
+        setRoleFilter('ALL');
+        break;
+    }
+  };
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -261,7 +331,7 @@ export default function UsersPage() {
                 <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                   <div className="flex items-center gap-2">
                     <div className="text-sm text-muted-foreground" role="status" aria-live="polite">
-                      {filteredUsers.length} of {users.length} users
+                  {filteredUsers.length} of {users.length} users
                     </div>
                     <TooltipProvider>
                       <Tooltip>
@@ -314,19 +384,158 @@ export default function UsersPage() {
                 </div>
                 <div className="relative w-full sm:w-80">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" aria-hidden="true" />
-                  <Input
-                    placeholder="Search users..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
+                <Input
+                  placeholder="Search users..."
+                  value={searchTerm}
+                    onChange={(e) => {
+                      setSearchTerm(e.target.value);
+                      if (e.target.value.trim()) {
+                        addToSearchHistory(e.target.value);
+                      }
+                    }}
                     className="pl-10 h-10 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                     aria-label="Search users by name, email, or role"
                     role="searchbox"
                   />
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowAdvancedSearch(!showAdvancedSearch)}
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
+                    aria-label="Toggle advanced search"
+                  >
+                    <Settings className="w-3 h-3" />
+                  </Button>
                 </div>
               </div>
             </div>
           </CardContent>
         </Card>
+
+        {/* Quick Filters */}
+        <div className="mb-6 flex flex-wrap gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => applyQuickFilter('active')}
+            className="text-xs h-8"
+          >
+            <User className="mr-1 h-3 w-3" />
+            Active Users
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => applyQuickFilter('inactive')}
+            className="text-xs h-8"
+          >
+            <User className="mr-1 h-3 w-3" />
+            Inactive Users
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => applyQuickFilter('recent')}
+            className="text-xs h-8"
+          >
+            <Clock className="mr-1 h-3 w-3" />
+            Recent Login
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => applyQuickFilter('admins')}
+            className="text-xs h-8"
+          >
+            <Shield className="mr-1 h-3 w-3" />
+            Admins
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => applyQuickFilter('clear')}
+            className="text-xs h-8 text-red-600 hover:text-red-700"
+          >
+            <X className="mr-1 h-3 w-3" />
+            Clear Filters
+          </Button>
+        </div>
+
+        {/* Advanced Search Panel */}
+        {showAdvancedSearch && (
+          <Card className="border-0 shadow-2xl bg-white/80 backdrop-blur-sm mb-6">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Settings className="w-5 h-5" />
+                Advanced Search
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Name</label>
+                  <Input
+                    placeholder="Search by name..."
+                    value={searchCriteria.name}
+                    onChange={(e) => setSearchCriteria(prev => ({ ...prev, name: e.target.value }))}
+                    className="h-9"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Email</label>
+                  <Input
+                    placeholder="Search by email..."
+                    value={searchCriteria.email}
+                    onChange={(e) => setSearchCriteria(prev => ({ ...prev, email: e.target.value }))}
+                    className="h-9"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Role</label>
+                  <Select value={searchCriteria.role} onValueChange={(value) => setSearchCriteria(prev => ({ ...prev, role: value }))}>
+                    <SelectTrigger className="h-9">
+                      <SelectValue placeholder="All roles" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ALL">All Roles</SelectItem>
+                      <SelectItem value="SUPER_ADMIN">Super Admin</SelectItem>
+                      <SelectItem value="ADMIN">Admin</SelectItem>
+                      <SelectItem value="MANAGER">Manager</SelectItem>
+                      <SelectItem value="WORKER">Worker</SelectItem>
+                      <SelectItem value="CLIENT">Client</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Status</label>
+                  <Select value={searchCriteria.status} onValueChange={(value) => setSearchCriteria(prev => ({ ...prev, status: value }))}>
+                    <SelectTrigger className="h-9">
+                      <SelectValue placeholder="All status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ALL">All Status</SelectItem>
+                      <SelectItem value="ACTIVE">Active</SelectItem>
+                      <SelectItem value="INACTIVE">Inactive</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Last Login</label>
+                  <Select value={searchCriteria.lastLogin} onValueChange={(value) => setSearchCriteria(prev => ({ ...prev, lastLogin: value }))}>
+                    <SelectTrigger className="h-9">
+                      <SelectValue placeholder="All time" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ALL">All Time</SelectItem>
+                      <SelectItem value="RECENT">Recent (7 days)</SelectItem>
+                      <SelectItem value="OLD">Old (30+ days)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
         {/* Users List */}
         <div className="space-y-4">
           {loading ? (
@@ -356,19 +565,19 @@ export default function UsersPage() {
 
                   {/* Desktop: Card View */}
                   <div className="hidden sm:block">
-                    <CardHeader>
-                      <div className="flex items-center space-x-4">
+                  <CardHeader>
+                    <div className="flex items-center space-x-4">
                         <div className="w-12 h-12 bg-muted rounded-full flex-shrink-0"></div>
                         <div className="flex-1 min-w-0">
-                          <div className="h-4 bg-muted rounded w-3/4 mb-2"></div>
-                          <div className="h-3 bg-muted rounded w-1/2"></div>
-                        </div>
+                        <div className="h-4 bg-muted rounded w-3/4 mb-2"></div>
+                        <div className="h-3 bg-muted rounded w-1/2"></div>
                       </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="h-3 bg-muted rounded w-full mb-2"></div>
-                      <div className="h-3 bg-muted rounded w-2/3"></div>
-                    </CardContent>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-3 bg-muted rounded w-full mb-2"></div>
+                    <div className="h-3 bg-muted rounded w-2/3"></div>
+                  </CardContent>
                   </div>
                 </Card>
               ))}
@@ -533,9 +742,9 @@ export default function UsersPage() {
                               <p className="text-sm text-gray-600 truncate">{user.email}</p>
                             </div>
                             <Badge variant={getRoleBadgeVariant(user.role)} className="text-xs px-2 py-1 ml-2 flex-shrink-0">
-                              {user.role.replace('_', ' ')}
-                            </Badge>
-                          </div>
+                        {user.role.replace('_', ' ')}
+                      </Badge>
+                    </div>
                           <div className="flex flex-wrap gap-2 items-center text-xs">
                             <span className="flex items-center gap-1">
                               <span className={`inline-block w-2 h-2 rounded-full ${user.isActive ? 'bg-green-500' : 'bg-gray-400'}`}></span>
@@ -556,16 +765,16 @@ export default function UsersPage() {
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <Button
+                        <Button
                                 variant="outline"
-                                size="sm"
+                          size="sm"
                                 onClick={() => router.push(`/admin/users/${user.id}`)}
                                 className="flex-1"
                                 aria-label={`Manage permissions for ${user.name}`}
-                              >
+                        >
                                 <Settings className="mr-2 h-4 w-4" />
-                                Permissions
-                              </Button>
+                          Permissions
+                        </Button>
                             </TooltipTrigger>
                             <TooltipContent side="top">
                               <div className="space-y-1">
@@ -578,16 +787,16 @@ export default function UsersPage() {
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <Button
+                        <Button
                                 variant="outline"
-                                size="sm"
+                          size="sm"
                                 onClick={() => handleOpenUserForm(user)}
                                 className="flex-1"
                                 aria-label={`Edit user ${user.name}`}
-                              >
+                        >
                                 <Edit className="mr-2 h-4 w-4" />
-                                Edit
-                              </Button>
+                          Edit
+                        </Button>
                             </TooltipTrigger>
                             <TooltipContent side="top">
                               <div className="space-y-1">
@@ -602,15 +811,15 @@ export default function UsersPage() {
                             <TooltipProvider>
                               <Tooltip>
                                 <TooltipTrigger asChild>
-                                  <Button
+                            <Button
                                     variant="outline"
-                                    size="sm"
+                              size="sm"
                                     className="flex-1 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
                                     aria-label={`Delete user ${user.name}`}
-                                  >
+                            >
                                     <Trash2 className="mr-2 h-4 w-4" />
-                                    Delete
-                                  </Button>
+                              Delete
+                            </Button>
                                 </TooltipTrigger>
                                 <TooltipContent side="top">
                                   <div className="space-y-1">
@@ -641,7 +850,7 @@ export default function UsersPage() {
                         </AlertDialog>
                       </div>
                     </CardContent>
-                  </div>
+                    </div>
                 </Card>
               ))}
             </div>
