@@ -161,7 +161,7 @@ export default function Permissions({
             {/* Current Brand Permissions */}
             <div className="space-y-4">
               <h4 className="font-semibold text-lg">Current Brand Permissions</h4>
-              {brandPermissions.length === 0 ? (
+              {(brandPermissions || []).length === 0 ? (
                 <div className="text-center py-8">
                   <Building2 className="w-12 h-12 mx-auto text-gray-400 mb-4" />
                   <p className="text-gray-500">No brand permissions assigned</p>
@@ -169,7 +169,7 @@ export default function Permissions({
               ) : (
                 <div className="overflow-x-auto">
                   <div className="min-w-[350px] divide-y divide-gray-200 bg-white rounded-md border border-gray-200">
-                    {brandPermissions.map((perm) => (
+                    {(brandPermissions || []).filter(perm => perm && perm.brand).map((perm) => (
                       <div key={perm.id} className="flex items-center px-4 py-2 hover:bg-slate-50 transition-all">
                         <div className="flex-1">
                           <div className="font-medium text-gray-900">{perm.brand.name}</div>
@@ -299,7 +299,7 @@ export default function Permissions({
             {/* Current Project Permissions */}
             <div className="space-y-4">
               <h4 className="font-semibold text-lg">Current Project Permissions</h4>
-              {projectPermissions.length === 0 ? (
+              {(projectPermissions || []).length === 0 ? (
                 <div className="text-center py-8">
                   <FolderOpen className="w-12 h-12 mx-auto text-gray-400 mb-4" />
                   <p className="text-gray-500">No project permissions assigned</p>
@@ -307,7 +307,7 @@ export default function Permissions({
               ) : (
                 <div className="overflow-x-auto">
                   <div className="min-w-[350px] divide-y divide-gray-200 bg-white rounded-md border border-gray-200">
-                    {projectPermissions.map((perm) => (
+                    {(projectPermissions || []).filter(perm => perm && perm.project).map((perm) => (
                       <div key={perm.id} className="flex items-center px-4 py-2 hover:bg-slate-50 transition-all">
                         <div className="flex-1">
                           <div className="font-medium text-gray-900">{perm.project.name}</div>

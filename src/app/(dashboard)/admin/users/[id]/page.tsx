@@ -375,7 +375,7 @@ export default function UserDetailPage() {
         const data = await response.json();
         setUserDetails(prev => prev ? {
           ...prev,
-          brandPermissions: [...prev.brandPermissions, data.data.permission]
+          brandPermissions: [...(prev.brandPermissions || []), data.data.permission]
         } : null);
         
         setSelectedBrandId('');
@@ -419,7 +419,7 @@ export default function UserDetailPage() {
       if (response.ok) {
         setUserDetails(prev => prev ? {
           ...prev,
-          brandPermissions: prev.brandPermissions.filter(perm => perm.brand.id !== brandId)
+          brandPermissions: (prev.brandPermissions || []).filter(perm => perm && perm.brand && perm.brand.id !== brandId)
         } : null);
         
         toast({
@@ -472,7 +472,7 @@ export default function UserDetailPage() {
         const data = await response.json();
         setUserDetails(prev => prev ? {
           ...prev,
-          projectPermissions: [...prev.projectPermissions, data.data.permission]
+          projectPermissions: [...(prev.projectPermissions || []), data.data.permission]
         } : null);
         
         setSelectedProjectId('');
@@ -516,7 +516,7 @@ export default function UserDetailPage() {
       if (response.ok) {
         setUserDetails(prev => prev ? {
           ...prev,
-          projectPermissions: prev.projectPermissions.filter(perm => perm.project.id !== projectId)
+          projectPermissions: (prev.projectPermissions || []).filter(perm => perm && perm.project && perm.project.id !== projectId)
         } : null);
         
         toast({
