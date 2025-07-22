@@ -124,31 +124,39 @@ export default function UserDetailPage() {
   const [selectedProjectPermissionLevel, setSelectedProjectPermissionLevel] = useState('');
   const [addingProjectPermission, setAddingProjectPermission] = useState(false);
 
+  // Permission update states
+  const [updatingPermissions, setUpdatingPermissions] = useState<Set<string>>(new Set());
+  const [removingPermissions, setRemovingPermissions] = useState<Set<string>>(new Set());
+
   // Fetch user details on component mount
   useEffect(() => {
     fetchUserDetails();
     fetchUserActivities();
-    fetchUserNotes(); // Fetch notes on mount
+    fetchUserNotes();
   }, [userId]);
 
   // Fetch complete user details with single API call
   const fetchUserDetails = async () => {
-    setLoading(true);
-    setError('');
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/admin/users/${userId}/details`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+      setLoading(true);
+      setError('');
+      const response = await fetch(`http://localhost:5000/api/admin/users/${userId}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
       });
-
-      const data = await response.json();
-      if (data.success) {
+      
+      if (response.ok) {
+        const data = await response.json();
         setUserDetails(data.data);
+      } else if (response.status === 404) {
+        setError('User not found');
       } else {
-        setError(data.error || 'Failed to fetch user details');
+        setError('Failed to load user details');
       }
-    } catch (err) {
-      setError('Failed to fetch user details');
+    } catch (error) {
+      console.error('Error fetching user details:', error);
+      setError('Failed to load user details');
     } finally {
       setLoading(false);
     }
@@ -169,9 +177,19 @@ export default function UserDetailPage() {
         setActivities(data.data.activities);
       } else {
         console.error('Failed to fetch activities');
+        toast({
+          title: "Error",
+          description: "Failed to load user activities",
+          variant: "destructive",
+        });
       }
     } catch (error) {
       console.error('Error fetching activities:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load user activities",
+        variant: "destructive",
+      });
     } finally {
       setActivitiesLoading(false);
     }
@@ -192,9 +210,19 @@ export default function UserDetailPage() {
         setNotes(data.data.notes);
       } else {
         console.error('Failed to fetch notes');
+        toast({
+          title: "Error",
+          description: "Failed to load user notes",
+          variant: "destructive",
+        });
       }
     } catch (error) {
       console.error('Error fetching notes:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load user notes",
+        variant: "destructive",
+      });
     } finally {
       setNotesLoading(false);
     }
@@ -335,50 +363,56 @@ export default function UserDetailPage() {
   // Helper: Get permission badge variant
   const getPermissionBadgeVariant = (level: string) => {
     switch (level.toLowerCase()) {
-      case 'read': return 'secondary';
-      case 'write': return 'default';
-      case 'admin': return 'destructive';
-      default: return 'outline';
+      case 'read':
+        return 'secondary';
+      case 'write':
+        return 'default';
+      case 'admin':
+        return 'destructive';
+      default:
+        return 'outline';
     }
   };
 
   // Helper: Get role badge variant
   const getRoleBadgeVariant = (role: string) => {
     switch (role) {
-      case 'SUPER_ADMIN': return 'destructive';
-      case 'ADMIN': return 'default';
-      case 'MANAGER': return 'secondary';
-      case 'WORKER': return 'outline';
-      case 'CLIENT': return 'secondary';
-      default: return 'outline';
+      case 'SUPER_ADMIN':
+        return 'destructive';
+      case 'ADMIN':
+        return 'default';
+      case 'MANAGER':
+        return 'secondary';
+      case 'WORKER':
+        return 'outline';
+      case 'CLIENT':
+        return 'outline';
+      default:
+        return 'outline';
     }
   };
 
-  // Helper: Check if user already has brand permission
+  // Helper: Check if user has brand permission
   const userHasBrandPermission = (brandId: string) => {
-    return userDetails?.brandPermissions.some(perm => perm.brand.id === brandId) || false;
+    return brandPermissions.some(perm => perm.brand.id === brandId);
   };
 
-  // Helper: Check if user already has project permission
+  // Helper: Check if user has project permission
   const userHasProjectPermission = (projectId: string) => {
-    return userDetails?.projectPermissions.some(perm => perm.project.id === projectId) || false;
+    return projectPermissions.some(perm => perm.project.id === projectId);
   };
 
   // Add brand permission
   const handleAddBrandPermission = async () => {
-    if (!selectedBrandId || userHasBrandPermission(selectedBrandId)) {
-      toast({ title: 'Error', description: 'Please select a valid brand or user already has permission' });
-      return;
-    }
+    if (!selectedBrandId || !selectedBrandPermissionLevel) return;
 
-    setAddingBrandPermission(true);
     try {
-      const token = localStorage.getItem('token');
+      setAddingBrandPermission(true);
       const response = await fetch(`http://localhost:5000/api/brands/${selectedBrandId}/permissions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
         },
         body: JSON.stringify({
           userId,
@@ -386,17 +420,35 @@ export default function UserDetailPage() {
         })
       });
 
-      const data = await response.json();
-      if (data.success) {
-        toast({ title: 'Success', description: 'Brand permission added successfully' });
+      if (response.ok) {
+        const data = await response.json();
+        setUserDetails(prev => prev ? {
+          ...prev,
+          brandPermissions: [...prev.brandPermissions, data.data.permission]
+        } : null);
+        
         setSelectedBrandId('');
-        setSelectedBrandPermissionLevel('read');
-        fetchUserDetails(); // Refresh data
+        setSelectedBrandPermissionLevel('');
+        
+        toast({
+          title: "Success",
+          description: "Brand permission added successfully",
+        });
       } else {
-        toast({ title: 'Error', description: data.error || 'Failed to add brand permission' });
+        const errorData = await response.json();
+        toast({
+          title: "Error",
+          description: errorData.error || "Failed to add brand permission",
+          variant: "destructive",
+        });
       }
-    } catch (err) {
-      toast({ title: 'Error', description: 'Failed to add brand permission' });
+    } catch (error) {
+      console.error('Error adding brand permission:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add brand permission",
+        variant: "destructive",
+      });
     } finally {
       setAddingBrandPermission(false);
     }
@@ -405,39 +457,59 @@ export default function UserDetailPage() {
   // Remove brand permission
   const handleRemoveBrandPermission = async (brandId: string) => {
     try {
-      const token = localStorage.getItem('token');
+      setRemovingPermissions(prev => new Set([...prev, `brand-${brandId}`]));
       const response = await fetch(`http://localhost:5000/api/brands/${brandId}/permissions/${userId}`, {
         method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
       });
 
-      const data = await response.json();
-      if (data.success) {
-        toast({ title: 'Success', description: 'Brand permission removed successfully' });
-        fetchUserDetails(); // Refresh data
+      if (response.ok) {
+        setUserDetails(prev => prev ? {
+          ...prev,
+          brandPermissions: prev.brandPermissions.filter(perm => perm.brand.id !== brandId)
+        } : null);
+        
+        toast({
+          title: "Success",
+          description: "Brand permission removed successfully",
+        });
       } else {
-        toast({ title: 'Error', description: data.error || 'Failed to remove brand permission' });
+        const errorData = await response.json();
+        toast({
+          title: "Error",
+          description: errorData.error || "Failed to remove brand permission",
+          variant: "destructive",
+        });
       }
-    } catch (err) {
-      toast({ title: 'Error', description: 'Failed to remove brand permission' });
+    } catch (error) {
+      console.error('Error removing brand permission:', error);
+      toast({
+        title: "Error",
+        description: "Failed to remove brand permission",
+        variant: "destructive",
+      });
+    } finally {
+      setRemovingPermissions(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(`brand-${brandId}`);
+        return newSet;
+      });
     }
   };
 
   // Add project permission
   const handleAddProjectPermission = async () => {
-    if (!selectedProjectId || userHasProjectPermission(selectedProjectId)) {
-      toast({ title: 'Error', description: 'Please select a valid project or user already has permission' });
-      return;
-    }
+    if (!selectedProjectId || !selectedProjectPermissionLevel) return;
 
-    setAddingProjectPermission(true);
     try {
-      const token = localStorage.getItem('token');
+      setAddingProjectPermission(true);
       const response = await fetch(`http://localhost:5000/api/projects/${selectedProjectId}/permissions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
         },
         body: JSON.stringify({
           userId,
@@ -445,17 +517,35 @@ export default function UserDetailPage() {
         })
       });
 
-      const data = await response.json();
-      if (data.success) {
-        toast({ title: 'Success', description: 'Project permission added successfully' });
+      if (response.ok) {
+        const data = await response.json();
+        setUserDetails(prev => prev ? {
+          ...prev,
+          projectPermissions: [...prev.projectPermissions, data.data.permission]
+        } : null);
+        
         setSelectedProjectId('');
-        setSelectedProjectPermissionLevel('read');
-        fetchUserDetails(); // Refresh data
+        setSelectedProjectPermissionLevel('');
+        
+        toast({
+          title: "Success",
+          description: "Project permission added successfully",
+        });
       } else {
-        toast({ title: 'Error', description: data.error || 'Failed to add project permission' });
+        const errorData = await response.json();
+        toast({
+          title: "Error",
+          description: errorData.error || "Failed to add project permission",
+          variant: "destructive",
+        });
       }
-    } catch (err) {
-      toast({ title: 'Error', description: 'Failed to add project permission' });
+    } catch (error) {
+      console.error('Error adding project permission:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add project permission",
+        variant: "destructive",
+      });
     } finally {
       setAddingProjectPermission(false);
     }
@@ -464,77 +554,160 @@ export default function UserDetailPage() {
   // Remove project permission
   const handleRemoveProjectPermission = async (projectId: string) => {
     try {
-      const token = localStorage.getItem('token');
+      setRemovingPermissions(prev => new Set([...prev, `project-${projectId}`]));
       const response = await fetch(`http://localhost:5000/api/projects/${projectId}/permissions/${userId}`, {
         method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
       });
 
-      const data = await response.json();
-      if (data.success) {
-        toast({ title: 'Success', description: 'Project permission removed successfully' });
-        fetchUserDetails(); // Refresh data
+      if (response.ok) {
+        setUserDetails(prev => prev ? {
+          ...prev,
+          projectPermissions: prev.projectPermissions.filter(perm => perm.project.id !== projectId)
+        } : null);
+        
+        toast({
+          title: "Success",
+          description: "Project permission removed successfully",
+        });
       } else {
-        toast({ title: 'Error', description: data.error || 'Failed to remove project permission' });
+        const errorData = await response.json();
+        toast({
+          title: "Error",
+          description: errorData.error || "Failed to remove project permission",
+          variant: "destructive",
+        });
       }
-    } catch (err) {
-      toast({ title: 'Error', description: 'Failed to remove project permission' });
+    } catch (error) {
+      console.error('Error removing project permission:', error);
+      toast({
+        title: "Error",
+        description: "Failed to remove project permission",
+        variant: "destructive",
+      });
+    } finally {
+      setRemovingPermissions(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(`project-${projectId}`);
+        return newSet;
+      });
     }
   };
 
-  // Add handler for updating brand permission level
+  // Update brand permission level
   const handleUpdateBrandPermissionLevel = async (brandId: string, newLevel: string) => {
     try {
-      const token = localStorage.getItem('token');
+      setUpdatingPermissions(prev => new Set([...prev, `brand-${brandId}`]));
       const response = await fetch(`http://localhost:5000/api/brands/${brandId}/permissions/${userId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
         },
-        body: JSON.stringify({ permissionLevel: newLevel.toUpperCase() })
+        body: JSON.stringify({
+          permissionLevel: newLevel.toUpperCase()
+        })
       });
-      const data = await response.json();
-      if (data.success) {
-        toast({ title: 'Success', description: 'Permission level updated' });
-        fetchUserDetails();
+
+      if (response.ok) {
+        const data = await response.json();
+        setUserDetails(prev => prev ? {
+          ...prev,
+          brandPermissions: prev.brandPermissions.map(perm => 
+            perm.brand.id === brandId ? data.data.permission : perm
+          )
+        } : null);
+        
+        toast({
+          title: "Success",
+          description: "Brand permission level updated successfully",
+        });
       } else {
-        toast({ title: 'Error', description: data.error || 'Failed to update permission' });
+        const errorData = await response.json();
+        toast({
+          title: "Error",
+          description: errorData.error || "Failed to update brand permission level",
+          variant: "destructive",
+        });
       }
-    } catch (err) {
-      toast({ title: 'Error', description: 'Failed to update permission' });
+    } catch (error) {
+      console.error('Error updating brand permission level:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update brand permission level",
+        variant: "destructive",
+      });
+    } finally {
+      setUpdatingPermissions(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(`brand-${brandId}`);
+        return newSet;
+      });
     }
   };
-  // Add handler for updating project permission level
+
+  // Update project permission level
   const handleUpdateProjectPermissionLevel = async (projectId: string, newLevel: string) => {
     try {
-      const token = localStorage.getItem('token');
+      setUpdatingPermissions(prev => new Set([...prev, `project-${projectId}`]));
       const response = await fetch(`http://localhost:5000/api/projects/${projectId}/permissions/${userId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
         },
-        body: JSON.stringify({ permissionLevel: newLevel.toUpperCase() })
+        body: JSON.stringify({
+          permissionLevel: newLevel.toUpperCase()
+        })
       });
-      const data = await response.json();
-      if (data.success) {
-        toast({ title: 'Success', description: 'Permission level updated' });
-        fetchUserDetails();
+
+      if (response.ok) {
+        const data = await response.json();
+        setUserDetails(prev => prev ? {
+          ...prev,
+          projectPermissions: prev.projectPermissions.map(perm => 
+            perm.project.id === projectId ? data.data.permission : perm
+          )
+        } : null);
+        
+        toast({
+          title: "Success",
+          description: "Project permission level updated successfully",
+        });
       } else {
-        toast({ title: 'Error', description: data.error || 'Failed to update permission' });
+        const errorData = await response.json();
+        toast({
+          title: "Error",
+          description: errorData.error || "Failed to update project permission level",
+          variant: "destructive",
+        });
       }
-    } catch (err) {
-      toast({ title: 'Error', description: 'Failed to update permission' });
+    } catch (error) {
+      console.error('Error updating project permission level:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update project permission level",
+        variant: "destructive",
+      });
+    } finally {
+      setUpdatingPermissions(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(`project-${projectId}`);
+        return newSet;
+      });
     }
   };
 
-  // Format date helper
+  // Helper: Format date
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
-      month: 'long',
+      month: 'short',
       day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
     });
   };
 
@@ -570,7 +743,7 @@ export default function UserDetailPage() {
         <main className="container mx-auto px-4 py-8">
           <div className="flex items-center justify-center h-64">
             <div className="text-center">
-              <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
               <p className="text-gray-600">Loading user details...</p>
             </div>
           </div>
@@ -613,18 +786,18 @@ export default function UserDetailPage() {
         {/* User Info Header */}
         <Card className="border-0 shadow-2xl bg-white/80 backdrop-blur-sm mb-8">
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-6">
-                <Avatar className="w-20 h-20">
-                  <AvatarFallback className="text-2xl font-bold bg-gradient-to-br from-blue-500 to-blue-600 text-white">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-4 lg:gap-6">
+                <Avatar className="w-16 h-16 sm:w-20 sm:h-20 flex-shrink-0">
+                  <AvatarFallback className="text-xl sm:text-2xl font-bold bg-gradient-to-br from-blue-500 to-blue-600 text-white">
                     {user.name.split(' ').map(n => n[0]).join('').toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
-                <div>
-                  <CardTitle className="text-3xl text-gray-900 mb-2">{user.name}</CardTitle>
-                  <CardDescription className="text-lg text-gray-600 mb-3">{user.email}</CardDescription>
-                  <div className="flex items-center gap-3">
-                    <Badge variant={getRoleBadgeVariant(user.role)} className="text-sm px-3 py-1">
+                <div className="flex-1 min-w-0">
+                  <CardTitle className="text-2xl sm:text-3xl text-gray-900 mb-2 break-words">{user.name}</CardTitle>
+                  <CardDescription className="text-base sm:text-lg text-gray-600 mb-3 break-words">{user.email}</CardDescription>
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                    <Badge variant={getRoleBadgeVariant(user.role)} className="text-sm px-3 py-1 w-fit">
                       {user.role.replace('_', ' ')}
                     </Badge>
                     <div className="flex items-center text-sm text-gray-500">
@@ -634,8 +807,8 @@ export default function UserDetailPage() {
                   </div>
                 </div>
               </div>
-              <div className="text-right">
-                <div className="flex items-center gap-4 text-sm text-gray-600">
+              <div className="text-left lg:text-right">
+                <div className="flex flex-col sm:flex-row lg:flex-col gap-4 text-sm text-gray-600">
                   <div className="flex items-center gap-2">
                     <Building2 className="w-4 h-4" />
                     <span>{brandPermissions.length} brand permissions</span>
@@ -652,22 +825,26 @@ export default function UserDetailPage() {
 
         {/* Permissions Tabs */}
         <Tabs defaultValue="brands" className="space-y-6">
-          <TabsList className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
-            <TabsTrigger value="brands" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">
-              <Building2 className="w-4 h-4 mr-2" />
-              Brand Permissions
+          <TabsList className="bg-white/80 backdrop-blur-sm border-0 shadow-lg w-full grid grid-cols-4 gap-1 p-1">
+            <TabsTrigger value="brands" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-xs px-2 py-2 h-auto">
+              <Building2 className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">Brand Permissions</span>
+              <span className="sm:hidden">Brands</span>
             </TabsTrigger>
-            <TabsTrigger value="projects" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">
-              <FolderOpen className="w-4 h-4 mr-2" />
-              Project Permissions
+            <TabsTrigger value="projects" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-xs px-2 py-2 h-auto">
+              <FolderOpen className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">Project Permissions</span>
+              <span className="sm:hidden">Projects</span>
             </TabsTrigger>
-            <TabsTrigger value="activities" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">
-              <Clock className="w-4 h-4 mr-2" />
-              Activities
+            <TabsTrigger value="activities" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-xs px-2 py-2 h-auto">
+              <Clock className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">Activities</span>
+              <span className="sm:hidden">Activity</span>
             </TabsTrigger>
-            <TabsTrigger value="notes" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">
-              <StickyNote className="w-4 h-4 mr-2" />
-              Notes
+            <TabsTrigger value="notes" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-xs px-2 py-2 h-auto">
+              <StickyNote className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">Notes</span>
+              <span className="sm:hidden">Notes</span>
             </TabsTrigger>
           </TabsList>
 
@@ -697,10 +874,10 @@ export default function UserDetailPage() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+                    <div className="flex flex-col sm:grid sm:grid-cols-1 md:grid-cols-3 gap-4 items-start sm:items-center">
                       {/* Brand Dropdown */}
                       <Select value={selectedBrandId} onValueChange={setSelectedBrandId}>
-                        <SelectTrigger>
+                        <SelectTrigger className="h-10">
                           <SelectValue placeholder="Select Brand" />
                         </SelectTrigger>
                         <SelectContent>
@@ -714,9 +891,9 @@ export default function UserDetailPage() {
                         </SelectContent>
                       </Select>
                       {/* Permission Level Dropdown + Info Icon */}
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 w-full sm:w-auto">
                         <Select value={selectedBrandPermissionLevel} onValueChange={setSelectedBrandPermissionLevel}>
-                          <SelectTrigger>
+                          <SelectTrigger className="h-10 flex-1 sm:flex-none">
                             <SelectValue placeholder="Select Permission Level" />
                           </SelectTrigger>
                           <SelectContent>
@@ -742,7 +919,7 @@ export default function UserDetailPage() {
                       <Button 
                         onClick={handleAddBrandPermission}
                         disabled={!selectedBrandId || userHasBrandPermission(selectedBrandId) || addingBrandPermission || !selectedBrandPermissionLevel}
-                        className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800"
+                        className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 w-full sm:w-auto h-10"
                       >
                         {addingBrandPermission ? 'Adding...' : 'Add Permission'}
                       </Button>
@@ -770,7 +947,11 @@ export default function UserDetailPage() {
                               )}
                             </div>
                             <div className="flex items-center gap-2">
-                              <Select value={perm.permissionLevel.toLowerCase()} onValueChange={level => handleUpdateBrandPermissionLevel(perm.brand.id, level)}>
+                              <Select 
+                                value={perm.permissionLevel.toLowerCase()} 
+                                onValueChange={level => handleUpdateBrandPermissionLevel(perm.brand.id, level)}
+                                disabled={updatingPermissions.has(`brand-${perm.brand.id}`)}
+                              >
                                 <SelectTrigger className="w-24 h-8 text-xs">
                                   <SelectValue />
                                 </SelectTrigger>
@@ -780,14 +961,22 @@ export default function UserDetailPage() {
                                   <SelectItem value="admin">Admin</SelectItem>
                                 </SelectContent>
                               </Select>
+                              {updatingPermissions.has(`brand-${perm.brand.id}`) && (
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                              )}
                               <AlertDialog>
                                 <AlertDialogTrigger asChild>
                                   <Button
                                     variant="ghost"
                                     size="icon"
                                     className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                    disabled={removingPermissions.has(`brand-${perm.brand.id}`)}
                                   >
-                                    <Trash2 className="w-4 h-4" />
+                                    {removingPermissions.has(`brand-${perm.brand.id}`) ? (
+                                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600"></div>
+                                    ) : (
+                                      <Trash2 className="w-4 h-4" />
+                                    )}
                                   </Button>
                                 </AlertDialogTrigger>
                                 <AlertDialogContent className="border-0 shadow-2xl">
@@ -845,10 +1034,10 @@ export default function UserDetailPage() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+                    <div className="flex flex-col sm:grid sm:grid-cols-1 md:grid-cols-3 gap-4 items-start sm:items-center">
                       {/* Project Dropdown */}
                       <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
-                        <SelectTrigger>
+                        <SelectTrigger className="h-10">
                           <SelectValue placeholder="Select Project" />
                         </SelectTrigger>
                         <SelectContent>
@@ -862,9 +1051,9 @@ export default function UserDetailPage() {
                         </SelectContent>
                       </Select>
                       {/* Permission Level Dropdown + Info Icon */}
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 w-full sm:w-auto">
                         <Select value={selectedProjectPermissionLevel} onValueChange={setSelectedProjectPermissionLevel}>
-                          <SelectTrigger>
+                          <SelectTrigger className="h-10 flex-1 sm:flex-none">
                             <SelectValue placeholder="Select Permission Level" />
                           </SelectTrigger>
                           <SelectContent>
@@ -890,7 +1079,7 @@ export default function UserDetailPage() {
                       <Button 
                         onClick={handleAddProjectPermission}
                         disabled={!selectedProjectId || userHasProjectPermission(selectedProjectId) || addingProjectPermission || !selectedProjectPermissionLevel}
-                        className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800"
+                        className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 w-full sm:w-auto h-10"
                       >
                         {addingProjectPermission ? 'Adding...' : 'Add Permission'}
                       </Button>
@@ -919,7 +1108,11 @@ export default function UserDetailPage() {
                               )}
                             </div>
                             <div className="flex items-center gap-2">
-                              <Select value={perm.permissionLevel.toLowerCase()} onValueChange={level => handleUpdateProjectPermissionLevel(perm.project.id, level)}>
+                              <Select 
+                                value={perm.permissionLevel.toLowerCase()} 
+                                onValueChange={level => handleUpdateProjectPermissionLevel(perm.project.id, level)}
+                                disabled={updatingPermissions.has(`project-${perm.project.id}`)}
+                              >
                                 <SelectTrigger className="w-24 h-8 text-xs">
                                   <SelectValue />
                                 </SelectTrigger>
@@ -929,14 +1122,22 @@ export default function UserDetailPage() {
                                   <SelectItem value="admin">Admin</SelectItem>
                                 </SelectContent>
                               </Select>
+                              {updatingPermissions.has(`project-${perm.project.id}`) && (
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                              )}
                               <AlertDialog>
                                 <AlertDialogTrigger asChild>
                                   <Button
                                     variant="ghost"
                                     size="icon"
                                     className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                    disabled={removingPermissions.has(`project-${perm.project.id}`)}
                                   >
-                                    <Trash2 className="w-4 h-4" />
+                                    {removingPermissions.has(`project-${perm.project.id}`) ? (
+                                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600"></div>
+                                    ) : (
+                                      <Trash2 className="w-4 h-4" />
+                                    )}
                                   </Button>
                                 </AlertDialogTrigger>
                                 <AlertDialogContent className="border-0 shadow-2xl">

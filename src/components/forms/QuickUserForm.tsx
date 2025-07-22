@@ -89,27 +89,27 @@ export default function QuickUserForm({ open, onOpenChange, onUserCreated, editU
         }
       } else {
         response = await fetch(`http://localhost:5000/api/admin/users`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            name: name.trim(),
-            email: email.trim().toLowerCase(),
-            password: password,
-            role: role,
-          }),
-        });
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: name.trim(),
+          email: email.trim().toLowerCase(),
+          password: password,
+          role: role,
+        }),
+      });
         data = await response.json();
         if (!response.ok) throw new Error(data.error || 'Failed to create user');
-        if (data.success) {
+      if (data.success) {
           toast({ title: 'Success', description: 'User created successfully' });
-          onUserCreated(data.data.user);
-          resetForm();
-          onOpenChange(false);
-        } else {
-          throw new Error(data.error || 'Failed to create user');
+        onUserCreated(data.data.user);
+        resetForm();
+        onOpenChange(false);
+      } else {
+        throw new Error(data.error || 'Failed to create user');
         }
       }
     } catch (error) {
@@ -151,18 +151,18 @@ export default function QuickUserForm({ open, onOpenChange, onUserCreated, editU
             <Input id="userEmail" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Enter email address" className="h-10" disabled={loading} />
           </div>
           {!inviteMode && (
-            <div className="space-y-2">
+          <div className="space-y-2">
               <Label htmlFor="userPassword" className="text-sm font-medium">{editUser ? 'Password (leave blank to keep current)' : 'Password *'}</Label>
               <div className="relative">
-                <Input
-                  id="userPassword"
+            <Input
+              id="userPassword"
                   type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
                   placeholder={editUser ? 'Leave blank to keep current password' : 'Enter password (min 6 characters)'}
                   className="h-10 pr-10"
-                  disabled={loading}
-                />
+              disabled={loading}
+            />
                 <button
                   type="button"
                   tabIndex={-1}
@@ -173,7 +173,7 @@ export default function QuickUserForm({ open, onOpenChange, onUserCreated, editU
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
               </div>
-            </div>
+          </div>
           )}
           <div className="space-y-2">
             <Label htmlFor="userRole" className="text-sm font-medium">Role *</Label>
@@ -184,7 +184,7 @@ export default function QuickUserForm({ open, onOpenChange, onUserCreated, editU
               <SelectContent>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <SelectItem value="SUPER_ADMIN">Super Admin</SelectItem>
+                <SelectItem value="SUPER_ADMIN">Super Admin</SelectItem>
                   </TooltipTrigger>
                   <TooltipContent sideOffset={8}>
                     System owner, all permissions
@@ -192,7 +192,7 @@ export default function QuickUserForm({ open, onOpenChange, onUserCreated, editU
                 </Tooltip>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <SelectItem value="ADMIN">Admin</SelectItem>
+                <SelectItem value="ADMIN">Admin</SelectItem>
                   </TooltipTrigger>
                   <TooltipContent sideOffset={8}>
                     Brand manager, manage assigned brands
@@ -200,7 +200,7 @@ export default function QuickUserForm({ open, onOpenChange, onUserCreated, editU
                 </Tooltip>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <SelectItem value="MANAGER">Manager</SelectItem>
+                <SelectItem value="MANAGER">Manager</SelectItem>
                   </TooltipTrigger>
                   <TooltipContent sideOffset={8}>
                     Project manager, manage assigned projects
@@ -208,7 +208,7 @@ export default function QuickUserForm({ open, onOpenChange, onUserCreated, editU
                 </Tooltip>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <SelectItem value="WORKER">Worker</SelectItem>
+                <SelectItem value="WORKER">Worker</SelectItem>
                   </TooltipTrigger>
                   <TooltipContent sideOffset={8}>
                     Regular user, view assigned tasks, log time
@@ -216,7 +216,7 @@ export default function QuickUserForm({ open, onOpenChange, onUserCreated, editU
                 </Tooltip>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <SelectItem value="CLIENT">Client</SelectItem>
+                <SelectItem value="CLIENT">Client</SelectItem>
                   </TooltipTrigger>
                   <TooltipContent sideOffset={8}>
                     Brand owner/client, view own brand's projects and reports
@@ -227,8 +227,8 @@ export default function QuickUserForm({ open, onOpenChange, onUserCreated, editU
           </div>
           <div className="flex space-x-2 pt-4">
             {inviteMode ? (
-              <Button
-                type="button"
+            <Button
+              type="button"
                 disabled={loading || !name.trim() || !email.trim()}
                 className="flex-1 bg-blue-600 hover:bg-blue-700"
                 onClick={async () => {
@@ -273,7 +273,7 @@ export default function QuickUserForm({ open, onOpenChange, onUserCreated, editU
             ) : (
               <Button type="submit" disabled={loading || !name.trim() || !email.trim() || (!editUser && !password.trim())} className="flex-1 bg-blue-600 hover:bg-blue-700">
                 {loading ? (editUser ? 'Updating...' : 'Creating...') : (editUser ? 'Update User' : 'Create User')}
-              </Button>
+            </Button>
             )}
             <Button type="button" variant="outline" onClick={() => { setName(''); setEmail(''); setPassword(''); setRole('WORKER'); setInviteMode(false); onOpenChange(false); }} disabled={loading} className="flex-1">Cancel</Button>
           </div>
