@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, User } from 'lucide-react';
+import { Plus, Edit, Trash2, User, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface User {
   id: string;
@@ -259,11 +260,13 @@ export default function BrandPermissionManager({
             <div className="space-y-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium">User</label>
+                {/* User dropdown with placeholder */}
                 <Select value={selectedUserId} onValueChange={setSelectedUserId}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select a user" />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="" disabled>Select a user</SelectItem>
                     {availableUsers.map((user) => (
                       <SelectItem key={user.id} value={user.id}>
                         {user.name} ({user.email})
@@ -273,12 +276,33 @@ export default function BrandPermissionManager({
                 </Select>
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">Permission Level</label>
+                <label className="text-sm font-medium flex items-center gap-1">
+                  Permission Level
+                  {/* Info icon with tooltip for permission levels */}
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span tabIndex={0} className="ml-1 cursor-pointer">
+                          <Info className="w-4 h-4 text-blue-500" />
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent side="right">
+                        <div className="text-xs text-left">
+                          <b>READ:</b> View only.<br/>
+                          <b>WRITE:</b> Create and edit.<br/>
+                          <b>ADMIN:</b> Full management.
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </label>
+                {/* Permission dropdown with placeholder */}
                 <Select value={selectedPermissionLevel} onValueChange={setSelectedPermissionLevel}>
                   <SelectTrigger>
-                    <SelectValue />
+                    <SelectValue placeholder="Select a permission level" />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="" disabled>Select a permission level</SelectItem>
                     <SelectItem value="READ">Read Only</SelectItem>
                     <SelectItem value="WRITE">Read & Write</SelectItem>
                     <SelectItem value="ADMIN">Admin</SelectItem>

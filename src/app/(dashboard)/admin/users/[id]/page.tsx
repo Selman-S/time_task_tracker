@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Building2, FolderOpen, ShieldCheck, Trash2, Plus, User, Calendar, Users } from 'lucide-react';
+import { ArrowLeft, Building2, FolderOpen, ShieldCheck, Trash2, Plus, User, Calendar, Users, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -12,6 +12,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { toast } from '@/hooks/use-toast';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface User {
   id: string;
@@ -82,12 +83,12 @@ export default function UserDetailPage() {
 
   // Add brand permission state
   const [selectedBrandId, setSelectedBrandId] = useState('');
-  const [selectedBrandPermissionLevel, setSelectedBrandPermissionLevel] = useState('READ');
+  const [selectedBrandPermissionLevel, setSelectedBrandPermissionLevel] = useState('');
   const [addingBrandPermission, setAddingBrandPermission] = useState(false);
 
   // Add project permission state
   const [selectedProjectId, setSelectedProjectId] = useState('');
-  const [selectedProjectPermissionLevel, setSelectedProjectPermissionLevel] = useState('read');
+  const [selectedProjectPermissionLevel, setSelectedProjectPermissionLevel] = useState('');
   const [addingProjectPermission, setAddingProjectPermission] = useState(false);
 
   // Fetch user details on component mount
@@ -402,11 +403,9 @@ export default function UserDetailPage() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <Select 
-                        value={selectedBrandId} 
-                        onValueChange={setSelectedBrandId}
-                      >
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+                      {/* Brand Dropdown */}
+                      <Select value={selectedBrandId} onValueChange={setSelectedBrandId}>
                         <SelectTrigger>
                           <SelectValue placeholder="Select Brand" />
                         </SelectTrigger>
@@ -420,24 +419,33 @@ export default function UserDetailPage() {
                             ))}
                         </SelectContent>
                       </Select>
-
-                      <Select 
-                        value={selectedBrandPermissionLevel} 
-                        onValueChange={setSelectedBrandPermissionLevel}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="read">Read</SelectItem>
-                          <SelectItem value="write">Write</SelectItem>
-                          <SelectItem value="admin">Admin</SelectItem>
-                        </SelectContent>
-                      </Select>
-
+                      {/* Permission Level Dropdown + Info Icon */}
+                      <div className="flex items-center gap-2">
+                        <Select value={selectedBrandPermissionLevel} onValueChange={setSelectedBrandPermissionLevel}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select Permission Level" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="read">Read</SelectItem>
+                            <SelectItem value="write">Write</SelectItem>
+                            <SelectItem value="admin">Admin</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span tabIndex={0}><Info className="w-4 h-4 text-blue-500 cursor-pointer" /></span>
+                          </TooltipTrigger>
+                          <TooltipContent sideOffset={8}>
+                            <div className="text-xs whitespace-pre-line">
+                              READ: View only access.\nWRITE: Create and edit access.\nADMIN: Full management access (add/remove users, change permissions).
+                            </div>
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                      {/* Add Button */}
                       <Button 
                         onClick={handleAddBrandPermission}
-                        disabled={!selectedBrandId || userHasBrandPermission(selectedBrandId) || addingBrandPermission}
+                        disabled={!selectedBrandId || userHasBrandPermission(selectedBrandId) || addingBrandPermission || !selectedBrandPermissionLevel}
                         className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800"
                       >
                         {addingBrandPermission ? 'Adding...' : 'Add Permission'}
@@ -536,11 +544,9 @@ export default function UserDetailPage() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <Select 
-                        value={selectedProjectId} 
-                        onValueChange={setSelectedProjectId}
-                      >
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+                      {/* Project Dropdown */}
+                      <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
                         <SelectTrigger>
                           <SelectValue placeholder="Select Project" />
                         </SelectTrigger>
@@ -554,24 +560,33 @@ export default function UserDetailPage() {
                             ))}
                         </SelectContent>
                       </Select>
-
-                      <Select 
-                        value={selectedProjectPermissionLevel} 
-                        onValueChange={setSelectedProjectPermissionLevel}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="read">Read</SelectItem>
-                          <SelectItem value="write">Write</SelectItem>
-                          <SelectItem value="admin">Admin</SelectItem>
-                        </SelectContent>
-                      </Select>
-
+                      {/* Permission Level Dropdown + Info Icon */}
+                      <div className="flex items-center gap-2">
+                        <Select value={selectedProjectPermissionLevel} onValueChange={setSelectedProjectPermissionLevel}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select Permission Level" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="read">Read</SelectItem>
+                            <SelectItem value="write">Write</SelectItem>
+                            <SelectItem value="admin">Admin</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span tabIndex={0}><Info className="w-4 h-4 text-blue-500 cursor-pointer" /></span>
+                          </TooltipTrigger>
+                          <TooltipContent sideOffset={8}>
+                            <div className="text-xs whitespace-pre-line">
+                              READ: View only access.\nWRITE: Create and edit access.\nADMIN: Full management access (add/remove users, change permissions).
+                            </div>
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                      {/* Add Button */}
                       <Button 
                         onClick={handleAddProjectPermission}
-                        disabled={!selectedProjectId || userHasProjectPermission(selectedProjectId) || addingProjectPermission}
+                        disabled={!selectedProjectId || userHasProjectPermission(selectedProjectId) || addingProjectPermission || !selectedProjectPermissionLevel}
                         className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800"
                       >
                         {addingProjectPermission ? 'Adding...' : 'Add Permission'}

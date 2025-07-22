@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { toast } from '@/hooks/use-toast';
+import QuickUserForm from '@/components/forms/QuickUserForm';
 
 interface UserData {
   id: string;
@@ -25,6 +26,8 @@ export default function UsersPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  // State for QuickUserForm popup
+  const [showUserForm, setShowUserForm] = useState(false); // Controls user creation popup
 
   // Fetch users on component mount
   useEffect(() => {
@@ -96,6 +99,15 @@ export default function UsersPage() {
     }
   };
 
+  // Add new user to the list (called after successful creation)
+  const handleUserCreated = (newUser: UserData) => {
+    setUsers(prev => [newUser, ...prev]);
+    toast({
+      title: 'Success',
+      description: 'User created successfully',
+    });
+  };
+
   // Get role badge variant
   const getRoleBadgeVariant = (role: string) => {
     switch (role) {
@@ -132,14 +144,15 @@ export default function UsersPage() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                User Management 👥
+                User Management 👫
               </h1>
               <p className="text-gray-600">
                 Manage users and their permissions for your organization.
               </p>
             </div>
+            {/* New User button opens popup */}
             <Button
-              onClick={() => router.push('/admin/users/new')}
+              onClick={() => setShowUserForm(true)}
               className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg"
             >
               <Plus className="mr-2 h-4 w-4" />
@@ -147,6 +160,12 @@ export default function UsersPage() {
             </Button>
           </div>
         </div>
+        {/* QuickUserForm Popup */}
+        <QuickUserForm
+          open={showUserForm}
+          onOpenChange={setShowUserForm}
+          onUserCreated={handleUserCreated}
+        />
 
         {/* Search Card */}
         <Card className="border-0 shadow-2xl bg-white/80 backdrop-blur-sm mb-8">
