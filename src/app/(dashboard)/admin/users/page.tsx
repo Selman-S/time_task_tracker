@@ -11,6 +11,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { toast } from '@/hooks/use-toast';
 import QuickUserForm from '@/components/forms/QuickUserForm';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface UserData {
   id: string;
@@ -18,6 +19,10 @@ interface UserData {
   email: string;
   role: string;
   createdAt: string;
+  lastLogin?: string;
+  isActive?: boolean;
+  brandCount?: number;
+  projectCount?: number;
 }
 
 export default function UsersPage() {
@@ -29,6 +34,7 @@ export default function UsersPage() {
   // Modal state
   const [showUserForm, setShowUserForm] = useState(false);
   const [editUser, setEditUser] = useState<UserData | null>(null);
+  const [roleFilter, setRoleFilter] = useState<string>('ALL');
 
   useEffect(() => {
     fetchUsers();
@@ -103,17 +109,30 @@ export default function UsersPage() {
     }
   };
 
-  // Filter users
-  const filteredUsers = users.filter(user =>
-    user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.role.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Enhanced filter: search by name, email, role, isActive, brandCount, projectCount
+  const filteredUsers = users.filter(user => {
+    const q = searchTerm.toLowerCase();
+    const matches =
+      user.name.toLowerCase().includes(q) ||
+      user.email.toLowerCase().includes(q) ||
+      user.role.toLowerCase().includes(q) ||
+      (user.isActive ? 'active' : 'inactive').includes(q) ||
+      (user.brandCount !== undefined && user.brandCount.toString().includes(q)) ||
+      (user.projectCount !== undefined && user.projectCount.toString().includes(q));
+    return (roleFilter === 'ALL' || user.role === roleFilter) && matches;
+  });
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric', month: 'short', day: 'numeric',
     });
+  };
+
+  // Add a helper for formatting lastLogin
+  const formatDateTime = (dateString?: string) => {
+    if (!dateString) return '-';
+    const date = new Date(dateString);
+    return date.toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
   };
 
   return (
@@ -139,12 +158,27 @@ export default function UsersPage() {
           onUserCreated={(user) => handleUserSaved(user, !!editUser)}
           editUser={editUser}
         />
-        {/* Search Bar */}
+        {/* Search Bar + Role Filter */}
         <Card className="border-0 shadow-2xl bg-white/80 backdrop-blur-sm mb-8">
           <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div className="text-sm text-muted-foreground">{filteredUsers.length} of {users.length} users</div>
-              <div className="relative w-80">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="text-sm text-muted-foreground">{filteredUsers.length} of {users.length} users</div>
+                <Select value={roleFilter} onValueChange={setRoleFilter}>
+                  <SelectTrigger className="w-40 h-9">
+                    <SelectValue placeholder="Filter by role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ALL">All Roles</SelectItem>
+                    <SelectItem value="SUPER_ADMIN">Super Admin</SelectItem>
+                    <SelectItem value="ADMIN">Admin</SelectItem>
+                    <SelectItem value="MANAGER">Manager</SelectItem>
+                    <SelectItem value="WORKER">Worker</SelectItem>
+                    <SelectItem value="CLIENT">Client</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="relative w-full md:w-80">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                 <Input
                   placeholder="Search users..."
@@ -213,6 +247,15 @@ export default function UsersPage() {
                         <div className="flex-1">
                           <CardTitle className="text-lg text-gray-900">{user.name}</CardTitle>
                           <CardDescription className="text-gray-600">{user.email}</CardDescription>
+                          <div className="flex flex-wrap gap-2 mt-2 items-center text-xs">
+                            <span className="flex items-center gap-1">
+                              <span className={`inline-block w-2 h-2 rounded-full ${user.isActive ? 'bg-green-500' : 'bg-gray-400'}`}></span>
+                              <span className={user.isActive ? 'text-green-700' : 'text-gray-500'}>{user.isActive ? 'Active' : 'Inactive'}</span>
+                            </span>
+                            <span className="text-gray-500">Last login: {formatDateTime(user.lastLogin)}</span>
+                            <span className="text-gray-500">Brands: {user.brandCount ?? 0}</span>
+                            <span className="text-gray-500">Projects: {user.projectCount ?? 0}</span>
+                          </div>
                         </div>
                       </div>
                       <Badge variant={getRoleBadgeVariant(user.role)} className="shrink-0">

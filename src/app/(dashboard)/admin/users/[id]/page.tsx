@@ -512,61 +512,59 @@ export default function UserDetailPage() {
                       <p className="text-gray-500">No brand permissions assigned</p>
                     </div>
                   ) : (
-                    <div className="grid gap-4">
-                      {brandPermissions.map((perm) => (
-                        <Card key={perm.id} className="border border-gray-200 hover:shadow-md transition-shadow">
-                          <CardContent className="p-4">
-                            <div className="flex items-center justify-between">
-                              <div className="flex-1">
-                                <h5 className="font-medium text-gray-900">{perm.brand.name}</h5>
-                                {perm.brand.description && (
-                                  <p className="text-sm text-gray-500 mt-1">{perm.brand.description}</p>
-                                )}
-                              </div>
-                              <div className="flex items-center gap-3">
-                                <Select value={perm.permissionLevel.toLowerCase()} onValueChange={level => handleUpdateBrandPermissionLevel(perm.brand.id, level)}>
-                                  <SelectTrigger className="w-28">
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="read">Read</SelectItem>
-                                    <SelectItem value="write">Write</SelectItem>
-                                    <SelectItem value="admin">Admin</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                                <AlertDialog>
-                                  <AlertDialogTrigger asChild>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                                    >
-                                      <Trash2 className="w-4 h-4" />
-                                    </Button>
-                                  </AlertDialogTrigger>
-                                  <AlertDialogContent className="border-0 shadow-2xl">
-                                    <AlertDialogHeader>
-                                      <AlertDialogTitle>Remove Permission</AlertDialogTitle>
-                                      <AlertDialogDescription>
-                                        Are you sure you want to remove {user.name}'s permission for "{perm.brand.name}"?
-                                      </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                      <AlertDialogAction
-                                        onClick={() => handleRemoveBrandPermission(perm.brand.id)}
-                                        className="bg-red-600 hover:bg-red-700"
-                                      >
-                                        Remove
-                                      </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                  </AlertDialogContent>
-                                </AlertDialog>
-                              </div>
+                    <div className="overflow-x-auto">
+                      <div className="min-w-[350px] divide-y divide-gray-200 bg-white rounded-md border border-gray-200">
+                        {brandPermissions.map((perm) => (
+                          <div key={perm.id} className="flex items-center px-4 py-2 hover:bg-slate-50 transition-all">
+                            <div className="flex-1">
+                              <div className="font-medium text-gray-900">{perm.brand.name}</div>
+                              {perm.brand.description && (
+                                <div className="text-xs text-gray-500">{perm.brand.description}</div>
+                              )}
                             </div>
-                          </CardContent>
-                        </Card>
-                      ))}
+                            <div className="flex items-center gap-2">
+                              <Select value={perm.permissionLevel.toLowerCase()} onValueChange={level => handleUpdateBrandPermissionLevel(perm.brand.id, level)}>
+                                <SelectTrigger className="w-24 h-8 text-xs">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="read">Read</SelectItem>
+                                  <SelectItem value="write">Write</SelectItem>
+                                  <SelectItem value="admin">Admin</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent className="border-0 shadow-2xl">
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Remove Permission</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Are you sure you want to remove {user.name}'s permission for "{perm.brand.name}"?
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={() => handleRemoveBrandPermission(perm.brand.id)}
+                                      className="bg-red-600 hover:bg-red-700"
+                                    >
+                                      Remove
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -662,62 +660,60 @@ export default function UserDetailPage() {
                       <p className="text-gray-500">No project permissions assigned</p>
                     </div>
                   ) : (
-                    <div className="grid gap-4">
-                      {projectPermissions.map((perm) => (
-                        <Card key={perm.id} className="border border-gray-200 hover:shadow-md transition-shadow">
-                          <CardContent className="p-4">
-                            <div className="flex items-center justify-between">
-                              <div className="flex-1">
-                                <h5 className="font-medium text-gray-900">{perm.project.name}</h5>
-                                <p className="text-sm text-gray-500 mt-1">Brand: {perm.project.brand.name}</p>
-                                {perm.project.description && (
-                                  <p className="text-xs text-gray-400 mt-1">{perm.project.description}</p>
-                                )}
-                              </div>
-                              <div className="flex items-center gap-3">
-                                <Select value={perm.permissionLevel.toLowerCase()} onValueChange={level => handleUpdateProjectPermissionLevel(perm.project.id, level)}>
-                                  <SelectTrigger className="w-28">
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="read">Read</SelectItem>
-                                    <SelectItem value="write">Write</SelectItem>
-                                    <SelectItem value="admin">Admin</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                                <AlertDialog>
-                                  <AlertDialogTrigger asChild>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                                    >
-                                      <Trash2 className="w-4 h-4" />
-                                    </Button>
-                                  </AlertDialogTrigger>
-                                  <AlertDialogContent className="border-0 shadow-2xl">
-                                    <AlertDialogHeader>
-                                      <AlertDialogTitle>Remove Permission</AlertDialogTitle>
-                                      <AlertDialogDescription>
-                                        Are you sure you want to remove {user.name}'s permission for "{perm.project.name}"?
-                                      </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                      <AlertDialogAction
-                                        onClick={() => handleRemoveProjectPermission(perm.project.id)}
-                                        className="bg-red-600 hover:bg-red-700"
-                                      >
-                                        Remove
-                                      </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                  </AlertDialogContent>
-                                </AlertDialog>
-                              </div>
+                    <div className="overflow-x-auto">
+                      <div className="min-w-[350px] divide-y divide-gray-200 bg-white rounded-md border border-gray-200">
+                        {projectPermissions.map((perm) => (
+                          <div key={perm.id} className="flex items-center px-4 py-2 hover:bg-slate-50 transition-all">
+                            <div className="flex-1">
+                              <div className="font-medium text-gray-900">{perm.project.name}</div>
+                              <div className="text-xs text-gray-500">Brand: {perm.project.brand.name}</div>
+                              {perm.project.description && (
+                                <div className="text-xs text-gray-400">{perm.project.description}</div>
+                              )}
                             </div>
-                          </CardContent>
-                        </Card>
-                      ))}
+                            <div className="flex items-center gap-2">
+                              <Select value={perm.permissionLevel.toLowerCase()} onValueChange={level => handleUpdateProjectPermissionLevel(perm.project.id, level)}>
+                                <SelectTrigger className="w-24 h-8 text-xs">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="read">Read</SelectItem>
+                                  <SelectItem value="write">Write</SelectItem>
+                                  <SelectItem value="admin">Admin</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent className="border-0 shadow-2xl">
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Remove Permission</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Are you sure you want to remove {user.name}'s permission for "{perm.project.name}"?
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={() => handleRemoveProjectPermission(perm.project.id)}
+                                      className="bg-red-600 hover:bg-red-700"
+                                    >
+                                      Remove
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
