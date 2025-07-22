@@ -14,8 +14,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { toast } from '@/hooks/use-toast';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import UserOverview from '@/components/users/UserOverview';
-import BrandPermissions from '@/components/users/BrandPermissions';
-import ProjectPermissions from '@/components/users/ProjectPermissions';
+import Permissions from '@/components/users/Permissions';
 import UserActivities from '@/components/users/UserActivities';
 import UserNotes from '@/components/users/UserNotes';
 import { User as UserType, BrandPermission, ProjectPermission, Brand, Project, UserNote, Activity, UserDetails } from '@/types/user';
@@ -55,6 +54,9 @@ export default function UserDetailPage() {
   // Permission update states
   const [updatingPermissions, setUpdatingPermissions] = useState<Set<string>>(new Set());
   const [removingPermissions, setRemovingPermissions] = useState<Set<string>>(new Set());
+
+  // Tab state
+  const [activeTab, setActiveTab] = useState('overview');
 
   // Fetch user details on component mount
   useEffect(() => {
@@ -752,22 +754,17 @@ export default function UserDetailPage() {
         </Card>
 
         {/* Permissions Tabs */}
-        <Tabs defaultValue="brands" className="space-y-6">
-                  <TabsList className="bg-white/80 backdrop-blur-sm border-0 shadow-lg w-full grid grid-cols-5 gap-1 p-1">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+                  <TabsList className="bg-white/80 backdrop-blur-sm border-0 shadow-lg w-full grid grid-cols-4 gap-1 p-1">
           <TabsTrigger value="overview" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-xs px-2 py-2 h-auto">
             <User className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
             <span className="hidden sm:inline">Overview</span>
             <span className="sm:hidden">Profile</span>
           </TabsTrigger>
-          <TabsTrigger value="brands" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-xs px-2 py-2 h-auto">
-            <Building2 className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
-            <span className="hidden sm:inline">Brand Permissions</span>
-            <span className="sm:hidden">Brands</span>
-          </TabsTrigger>
-          <TabsTrigger value="projects" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-xs px-2 py-2 h-auto">
-            <FolderOpen className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
-            <span className="hidden sm:inline">Project Permissions</span>
-            <span className="sm:hidden">Projects</span>
+          <TabsTrigger value="permissions" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-xs px-2 py-2 h-auto">
+            <ShieldCheck className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+            <span className="hidden sm:inline">Permissions</span>
+            <span className="sm:hidden">Perms</span>
           </TabsTrigger>
           <TabsTrigger value="activities" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-xs px-2 py-2 h-auto">
             <Clock className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
@@ -790,40 +787,33 @@ export default function UserDetailPage() {
               formatDate={formatDate}
               getActivityIcon={getActivityIcon}
               getActivityBadgeVariant={getActivityBadgeVariant}
+              onTabChange={setActiveTab}
             />
           </TabsContent>
 
-          {/* Brand Permissions Tab */}
-          <TabsContent value="brands">
-            <BrandPermissions
+          {/* Permissions Tab */}
+          <TabsContent value="permissions">
+            <Permissions
               userDetails={userDetails}
               brandPermissions={brandPermissions}
+              projectPermissions={projectPermissions}
               availableBrands={availableBrands}
+              availableProjects={availableProjects}
               selectedBrandId={selectedBrandId}
               setSelectedBrandId={setSelectedBrandId}
               selectedBrandPermissionLevel={selectedBrandPermissionLevel}
               setSelectedBrandPermissionLevel={setSelectedBrandPermissionLevel}
-              addingBrandPermission={addingBrandPermission}
-              userHasBrandPermission={userHasBrandPermission}
-              handleAddBrandPermission={handleAddBrandPermission}
-              handleRemoveBrandPermission={handleRemoveBrandPermission}
-              handleUpdateBrandPermissionLevel={handleUpdateBrandPermissionLevel}
-              getPermissionBadgeVariant={getPermissionBadgeVariant}
-            />
-          </TabsContent>
-
-          {/* Project Permissions Tab */}
-          <TabsContent value="projects">
-            <ProjectPermissions
-              userDetails={userDetails}
-              projectPermissions={projectPermissions}
-              availableProjects={availableProjects}
               selectedProjectId={selectedProjectId}
               setSelectedProjectId={setSelectedProjectId}
               selectedProjectPermissionLevel={selectedProjectPermissionLevel}
               setSelectedProjectPermissionLevel={setSelectedProjectPermissionLevel}
+              addingBrandPermission={addingBrandPermission}
               addingProjectPermission={addingProjectPermission}
+              userHasBrandPermission={userHasBrandPermission}
               userHasProjectPermission={userHasProjectPermission}
+              handleAddBrandPermission={handleAddBrandPermission}
+              handleRemoveBrandPermission={handleRemoveBrandPermission}
+              handleUpdateBrandPermissionLevel={handleUpdateBrandPermissionLevel}
               handleAddProjectPermission={handleAddProjectPermission}
               handleRemoveProjectPermission={handleRemoveProjectPermission}
               handleUpdateProjectPermissionLevel={handleUpdateProjectPermissionLevel}

@@ -15,6 +15,7 @@ interface UserOverviewProps {
   formatDate: (dateString: string) => string;
   getActivityIcon: (type: string) => React.ReactElement;
   getActivityBadgeVariant: (type: string) => "default" | "destructive" | "outline" | "secondary";
+  onTabChange?: (tab: string) => void;
 }
 
 export default function UserOverview({
@@ -23,7 +24,8 @@ export default function UserOverview({
   getRoleBadgeVariant,
   formatDate,
   getActivityIcon,
-  getActivityBadgeVariant
+  getActivityBadgeVariant,
+  onTabChange
 }: UserOverviewProps) {
   return (
     <div className="space-y-6">
@@ -122,23 +124,15 @@ export default function UserOverview({
             <Button 
               variant="outline" 
               className="w-full justify-start"
-              onClick={() => (document.querySelector('[data-value="brands"]') as HTMLElement)?.click()}
+              onClick={() => onTabChange?.('permissions')}
             >
               <Building2 className="w-4 h-4 mr-2" />
-              Manage Brand Permissions
+              Manage Permissions
             </Button>
             <Button 
               variant="outline" 
               className="w-full justify-start"
-              onClick={() => (document.querySelector('[data-value="projects"]') as HTMLElement)?.click()}
-            >
-              <FolderOpen className="w-4 h-4 mr-2" />
-              Manage Project Permissions
-            </Button>
-            <Button 
-              variant="outline" 
-              className="w-full justify-start"
-              onClick={() => (document.querySelector('[data-value="activities"]') as HTMLElement)?.click()}
+              onClick={() => onTabChange?.('activities')}
             >
               <Clock className="w-4 h-4 mr-2" />
               View Recent Activities
@@ -146,7 +140,7 @@ export default function UserOverview({
             <Button 
               variant="outline" 
               className="w-full justify-start"
-              onClick={() => (document.querySelector('[data-value="notes"]') as HTMLElement)?.click()}
+              onClick={() => onTabChange?.('notes')}
             >
               <StickyNote className="w-4 h-4 mr-2" />
               Add Note
@@ -186,17 +180,17 @@ export default function UserOverview({
                   </div>
                 </div>
               ))}
-              {activities.length > 5 && (
-                <div className="text-center pt-2">
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => (document.querySelector('[data-value="activities"]') as HTMLElement)?.click()}
-                  >
-                    View All Activities
-                  </Button>
-                </div>
-              )}
+                                   {activities.length > 5 && (
+                       <div className="text-center pt-2">
+                         <Button 
+                           variant="outline" 
+                           size="sm"
+                           onClick={() => onTabChange?.('activities')}
+                         >
+                           View All Activities
+                         </Button>
+                       </div>
+                     )}
             </div>
           ) : (
             <div className="text-center py-8 text-gray-500">
