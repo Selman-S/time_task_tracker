@@ -425,43 +425,76 @@ export default function UsersPage() {
                         </div>
                       </div>
                     </CardHeader>
-                    <CardContent className="pt-0">
-                      <div className="flex gap-2">
-                                                 <Button
-                           variant="outline"
-                           size="sm"
-                           onClick={() => router.push(`/admin/users/${user.id}`)}
-                           className="flex-1 text-xs h-8"
-                           aria-label={`Manage permissions for ${user.name}`}
-                           title={`Manage permissions for ${user.name}`}
-                         >
-                           <Settings className="mr-1 h-3 w-3" />
-                           Perm
-                         </Button>
-                         <Button
-                           variant="outline"
-                           size="sm"
-                           onClick={() => handleOpenUserForm(user)}
-                           className="flex-1 text-xs h-8"
-                           aria-label={`Edit user ${user.name}`}
-                           title={`Edit user ${user.name}`}
-                         >
-                           <Edit className="mr-1 h-3 w-3" />
-                           Edit
-                         </Button>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                                                         <Button
-                               variant="outline"
-                               size="sm"
-                               className="flex-1 text-xs h-8 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
-                               aria-label={`Delete user ${user.name}`}
-                               title={`Delete user ${user.name}`}
-                             >
-                               <Trash2 className="mr-1 h-3 w-3" />
-                               Del
-                             </Button>
-                          </AlertDialogTrigger>
+                                         <CardContent className="pt-0">
+                       <div className="flex gap-2">
+                         <TooltipProvider>
+                           <Tooltip>
+                             <TooltipTrigger asChild>
+                               <Button
+                                 variant="outline"
+                                 size="sm"
+                                 onClick={() => router.push(`/admin/users/${user.id}`)}
+                                 className="flex-1 text-xs h-8"
+                                 aria-label={`Manage permissions for ${user.name}`}
+                               >
+                                 <Settings className="mr-1 h-3 w-3" />
+                                 Perm
+                               </Button>
+                             </TooltipTrigger>
+                             <TooltipContent side="top">
+                               <div className="space-y-1">
+                                 <p className="font-semibold">Manage Permissions</p>
+                                 <p className="text-sm">Assign brand and project access</p>
+                               </div>
+                             </TooltipContent>
+                           </Tooltip>
+                         </TooltipProvider>
+                         <TooltipProvider>
+                           <Tooltip>
+                             <TooltipTrigger asChild>
+                               <Button
+                                 variant="outline"
+                                 size="sm"
+                                 onClick={() => handleOpenUserForm(user)}
+                                 className="flex-1 text-xs h-8"
+                                 aria-label={`Edit user ${user.name}`}
+                               >
+                                 <Edit className="mr-1 h-3 w-3" />
+                                 Edit
+                               </Button>
+                             </TooltipTrigger>
+                             <TooltipContent side="top">
+                               <div className="space-y-1">
+                                 <p className="font-semibold">Edit User</p>
+                                 <p className="text-sm">Modify user details and role</p>
+                               </div>
+                             </TooltipContent>
+                           </Tooltip>
+                         </TooltipProvider>
+                         <AlertDialog>
+                           <AlertDialogTrigger asChild>
+                             <TooltipProvider>
+                               <Tooltip>
+                                 <TooltipTrigger asChild>
+                                   <Button
+                                     variant="outline"
+                                     size="sm"
+                                     className="flex-1 text-xs h-8 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                                     aria-label={`Delete user ${user.name}`}
+                                   >
+                                     <Trash2 className="mr-1 h-3 w-3" />
+                                     Del
+                                   </Button>
+                                 </TooltipTrigger>
+                                 <TooltipContent side="top">
+                                   <div className="space-y-1">
+                                     <p className="font-semibold">Delete User</p>
+                                     <p className="text-sm">Remove user from system</p>
+                                   </div>
+                                 </TooltipContent>
+                               </Tooltip>
+                             </TooltipProvider>
+                           </AlertDialogTrigger>
                           <AlertDialogContent className="border-0 shadow-2xl">
                             <AlertDialogHeader>
                               <AlertDialogTitle>Delete User</AlertDialogTitle>
@@ -520,40 +553,73 @@ export default function UsersPage() {
                     </CardHeader>
                     <CardContent className="pt-0">
                       <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => router.push(`/admin/users/${user.id}`)}
-                          className="flex-1"
-                          aria-label={`Manage permissions for ${user.name}`}
-                          title={`Manage permissions for ${user.name}`}
-                        >
-                          <Settings className="mr-2 h-4 w-4" />
-                          Permissions
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleOpenUserForm(user)}
-                          className="flex-1"
-                          aria-label={`Edit user ${user.name}`}
-                          title={`Edit user ${user.name}`}
-                        >
-                          <Edit className="mr-2 h-4 w-4" />
-                          Edit
-                        </Button>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => router.push(`/admin/users/${user.id}`)}
+                                className="flex-1"
+                                aria-label={`Manage permissions for ${user.name}`}
+                              >
+                                <Settings className="mr-2 h-4 w-4" />
+                                Permissions
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent side="top">
+                              <div className="space-y-1">
+                                <p className="font-semibold">Manage Permissions</p>
+                                <p className="text-sm">Assign brand and project access levels</p>
+                              </div>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleOpenUserForm(user)}
+                                className="flex-1"
+                                aria-label={`Edit user ${user.name}`}
+                              >
+                                <Edit className="mr-2 h-4 w-4" />
+                                Edit
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent side="top">
+                              <div className="space-y-1">
+                                <p className="font-semibold">Edit User</p>
+                                <p className="text-sm">Modify user details, role, and status</p>
+                              </div>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="flex-1 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
-                              aria-label={`Delete user ${user.name}`}
-                              title={`Delete user ${user.name}`}
-                            >
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              Delete
-                            </Button>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="flex-1 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                                    aria-label={`Delete user ${user.name}`}
+                                  >
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    Delete
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent side="top">
+                                  <div className="space-y-1">
+                                    <p className="font-semibold">Delete User</p>
+                                    <p className="text-sm">Permanently remove user from system</p>
+                                  </div>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
                           </AlertDialogTrigger>
                           <AlertDialogContent className="border-0 shadow-2xl">
                             <AlertDialogHeader>
