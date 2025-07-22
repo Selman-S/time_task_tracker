@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import React from 'react';
+import { Eye, EyeOff } from 'lucide-react';
 
 interface QuickUserFormProps {
   open: boolean;
@@ -28,6 +29,7 @@ export default function QuickUserForm({ open, onOpenChange, onUserCreated, editU
   const [password, setPassword] = useState('');
   const [role, setRole] = useState<string>('WORKER');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const { toast } = useToast();
 
   // Prefill form in edit mode
@@ -143,7 +145,26 @@ export default function QuickUserForm({ open, onOpenChange, onUserCreated, editU
           </div>
           <div className="space-y-2">
             <Label htmlFor="userPassword" className="text-sm font-medium">{editUser ? 'Password (leave blank to keep current)' : 'Password *'}</Label>
-            <Input id="userPassword" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder={editUser ? 'Leave blank to keep current password' : 'Enter password (min 6 characters)'} className="h-10" disabled={loading} />
+            <div className="relative">
+              <Input
+                id="userPassword"
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder={editUser ? 'Leave blank to keep current password' : 'Enter password (min 6 characters)'}
+                className="h-10 pr-10"
+                disabled={loading}
+              />
+              <button
+                type="button"
+                tabIndex={-1}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700"
+                onClick={() => setShowPassword((v) => !v)}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+              >
+                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
+            </div>
           </div>
           <div className="space-y-2">
             <Label htmlFor="userRole" className="text-sm font-medium">Role *</Label>
